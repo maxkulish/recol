@@ -9,10 +9,16 @@ Upstream numbers its specs by its own GitHub issues (`specs/GH759/` and so on).
 This fork keeps its planning separate so it stays visibly fork-owned and does
 not interleave with inherited specs.
 
-One inherited `.gitignore` rule had to change: upstream carried a bare `plan/`
-matching at any depth, because it uses a root `plan/` as untracked scratch and
-`Cargo.toml` excludes it from the published crate. That rule is now anchored to
-`/plan/`, so the root scratch directory stays ignored and this one is tracked.
+Two inherited rules were removed, both of which protected a directory that does
+not exist in this repository: a bare `plan/` in `.gitignore` matching at any
+depth, and a matching `"plan/"` entry in the `Cargo.toml` `exclude` list.
+Upstream uses a root `plan/` as untracked scratch; this fork does not, and
+planning here is tracked.
+
+`Cargo.toml` still excludes `docs/` from the published crate, which is
+deliberate. These documents belong in the repository and in review, not in a
+crate tarball. If planning ever needs to ship, that exclude is the line to
+revisit.
 
 ## Conventions
 

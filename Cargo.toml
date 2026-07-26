@@ -13,7 +13,6 @@ exclude = [
   "eval/locomo/locomo10.json",
   "eval/locomo/results/",
   "eval/local/results/",
-  "plan/",
   "docs/",
   "SPEC-*.md",
 ]
