@@ -1,7 +1,9 @@
-# docs/plan - Recol fork planning
+# docs/plan - Recol planning
 
-Planning documents for this fork. Upstream is `majiayu000/remem`; this is
-`maxkulish/recol`.
+Planning documents for this project. It began as a fork of `majiayu000/remem`
+and was detached on 2026-07-27, so `maxkulish/recol` is now a standalone
+repository with no GitHub parent. The `upstream` remote remains configured and
+still fetches.
 
 ## Why this directory, and not `specs/`
 
@@ -43,15 +45,17 @@ into extraction, routing, and the backend layer that merging upstream wholesale
 stops being realistic. Development happens on `main` without staging changes for
 contribution.
 
-The `upstream` remote stays configured anyway, because it costs nothing and
-keeps two options open: cherry-picking a specific upstream fix, and offering a
-self-contained change back if one turns out to be cleanly separable. Items in
-`01-roadmap.md` still carry a classification for that reason - read it as "would
-this stand alone if offered", not as a commitment to offer it.
+Detachment settled that question in one direction. The `upstream` remote stays
+configured because cherry-picking a specific upstream fix still works and costs
+nothing to keep available. Contributing back does not: a detached repository
+cannot open a pull request against its former parent, so offering a change
+would mean forking `majiayu000/remem` afresh and replaying the commit there.
 
-Three items are genuinely self-contained and would apply to any installation:
-the key source (R6) and the two retrieval fixes (R5a, R5b). If contributing
-anything, contribute those.
+Items in `01-roadmap.md` still carry a classification, but read it as "would
+this stand alone if offered", not as a route that currently exists. Three items
+are genuinely self-contained and would apply to any installation: the key
+source (R6) and the two retrieval fixes (R5a, R5b). If contributing anything,
+contribute those.
 
 ## Index
 
@@ -60,6 +64,8 @@ anything, contribute those.
 - `01-roadmap.md` - ordered work items, dependencies, upstream classification.
 - `10-transcript-bridge/` - the central fork feature: promote archived
   transcripts into the curation pipeline.
+- `20-rename-and-release/` - R0: rename to recol, rebuild CI, and narrow
+  distribution to GitHub Releases and a Homebrew tap. Sequenced first.
 
 ## Source material
 

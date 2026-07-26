@@ -10,10 +10,45 @@ Status legend: `blocked`, `next`, `queued`, `done`.
 
 ---
 
+## R0 - Rename, CI refactor, and distribution
+
+Status: **next** | Classification: **fork** | Blocks: R1, and every item after
+it | Spec: `20-rename-and-release/`
+
+On 2026-07-27 the GitHub fork was detached, so `maxkulish/recol` is a
+standalone repository with no parent. The name did not follow: the crate,
+binary, 138 environment variables, on-disk paths, and five publishing channels
+all still say `remem`.
+
+Sequenced first for two reasons. The rename touches `src/` broadly, so every
+item completed before it is one more body of work the mechanical pass has to
+cross. More importantly, `ci.yml` today runs `cargo test` sixteenth, behind
+fifteen inherited governance gates that a detached repository cannot satisfy,
+including a step replaying hardcoded GH813 and PR 906 commit SHAs. When any of
+them fails the Rust code is never compiled, and R1 and R2 both specify tests
+before implementation.
+
+Five phases: prune the inherited governance layer, rebuild CI so the Rust gates
+run first and a self-hosted M1 runner covers macOS, rename the live surfaces,
+reset local state, and narrow distribution from five channels to GitHub
+Releases plus `maxkulish/homebrew-tap`.
+
+`src/migrations/`, `specs/`, `eval/`, `site/`, and the audits under `docs/`
+keep the old name. The migrations are frozen for correctness: `v011` writes the
+literal `remem_static` into `ai_usage_events.pricing_source` and `v063`
+declares a column `remem_version`, both of which outlive any rename.
+
+One consequence to record: a detached repository cannot open a pull request
+against its former parent, so the `upstream` classification on R5 and R6 now
+describes intent rather than an available route. Cherry-picking from the
+`upstream` remote is unaffected.
+
+---
+
 ## R1 - Reliable extraction output
 
-Status: **next** | Classification: **upstream-after** | Blocks: R2, and any
-evaluation of curation quality
+Status: **blocked** on R0 | Classification: **upstream-after** | Blocks: R2,
+and any evaluation of curation quality
 
 The first real extraction failed with `malformed observation_extract output:
 expected strict JSON object`. Output is parsed by a bare
@@ -175,13 +210,21 @@ triggering on.
 ## Dependency graph
 
 ```
-R1 (extraction reliability)
- └─> R2 (transcript bridge)  ──> R7 (triggering)
+R0 (rename, CI, distribution)
+ └─> R1 (extraction reliability)
+      └─> R2 (transcript bridge)  ──> R7 (triggering)
 R4 (backend swap) ──> R3 (sensitivity routing)
    └─ also unblocks R1 step 4 if the failure is structural
-R5 (retrieval fixes)  independent
-R6 (key source)       independent
+R5 (retrieval fixes)  independent of R1-R4, after R0
+R6 (key source)       independent of R1-R4, after R0
 ```
 
-R5 and R6 are independent of everything and are the cheapest first wins, as
-well as the only two items that would stand alone if offered upstream.
+R0 precedes everything because it rewrites `src/` and because it is what makes
+CI reach `cargo test` at all. R5 and R6 remain the cheapest wins once it lands,
+and are the only two items that would stand alone if offered upstream, though
+doing so now needs a fresh fork.
+
+R6 is worth noting against R0: it adds the Keychain key source that the
+workstation currently fakes with a `.zshrc` wrapper. After R0 that wrapper reads
+`recol-cipher-key`, and R6 replaces it by teaching `load_cipher_key()` to read
+the same entry directly.
