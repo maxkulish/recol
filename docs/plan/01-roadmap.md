@@ -28,15 +28,23 @@ including a step replaying hardcoded GH813 and PR 906 commit SHAs. When any of
 them fails the Rust code is never compiled, and R1 and R2 both specify tests
 before implementation.
 
-Five phases: prune the inherited governance layer, rebuild CI so the Rust gates
-run first and a self-hosted M1 runner covers macOS, rename the live surfaces,
-reset local state, and narrow distribution from five channels to GitHub
-Releases plus `maxkulish/homebrew-tap`.
+Five phases: trim governance to the gates that still earn their place and add
+the branch, tag, and environment protection the repository lacks; rebuild CI so
+the Rust gates run first across hosted Linux, ARM macOS, and Intel macOS; rename
+the live surfaces under a manifest with a preserved-literal allowlist; perform a
+recoverable local cutover; and narrow distribution to GitHub Releases plus
+`maxkulish/homebrew-tap`.
 
-`src/migrations/`, `specs/`, `eval/`, `site/`, and the audits under `docs/`
-keep the old name. The migrations are frozen for correctness: `v011` writes the
-literal `remem_static` into `ai_usage_events.pricing_source` and `v063`
-declares a column `remem_version`, both of which outlive any rename.
+`src/migrations/`, `specs/`, `eval/`'s artifacts, and the audits under `docs/`
+keep the old name. The migrations are frozen for correctness: `v010` and `v011`
+bind `remem_static` and `remem_static_backfill` in
+`ai_usage_events.pricing_source`, and `v063` declares a column `remem_version`
+that `src/memory/procedure/registry.rs` reads and writes. Those literals are
+preserved in `src/` too, and the rename audit asserts they survive.
+
+`site/`, `eval/`'s executable scripts, and `CHANGELOG.md` are renamed, not
+frozen: the first is a checked public surface, the second invoke the binary, and
+the third is version-synchronized.
 
 One consequence to record: a detached repository cannot open a pull request
 against its former parent, so the `upstream` classification on R5 and R6 now

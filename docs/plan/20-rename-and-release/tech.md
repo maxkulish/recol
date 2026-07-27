@@ -7,240 +7,280 @@ place, and each with a different blast radius.
 
 **Build identity.** `Cargo.toml` declares `package.name = "remem-ai"`,
 `lib.name = "remem"`, and a single `[[bin]]` named `remem` at `src/main.rs`.
-The crate is published to crates.io as `remem-ai`; the fork will not publish
-there, so the plain name `recol` is free for all three.
+`Cargo.lock` is keyed on `remem-ai`, and `check_plugin_version_sync.py` reads
+that key by name, so the package rename changes what the checker looks for.
 
-**Environment.** 138 distinct `REMEM_*` variables, read throughout `src/`.
-Three carry live meaning today: `REMEM_CIPHER_KEY`, consumed by
-`load_cipher_key()` at `src/db/crypto.rs:36`; `REMEM_DATA_DIR`, consumed by
-`data_dir()` at `src/db/core.rs:83`; and `REMEM_CONFIG`, consumed at
+**Environment.** 138 distinct `REMEM_*` variables. Three carry live meaning:
+`REMEM_CIPHER_KEY` in `load_cipher_key()` at `src/db/crypto.rs:36`,
+`REMEM_DATA_DIR` in `data_dir()` at `src/db/core.rs:83`, and `REMEM_CONFIG` at
 `src/runtime_config.rs:90`.
 
 **On-disk state.** `data_dir()` returns `REMEM_DATA_DIR` if set, else
-`~/.remem`. Everything else derives from it: `db_path()` appends `remem.db`,
-`log_path()` at `src/log/config.rs:36` appends `remem.log`,
-`src/runtime_config.rs:90` appends `config.toml`, and `load_cipher_key()`
-appends `.key`.
+`~/.remem`. `db_path()` appends `remem.db`, `log_path()` at
+`src/log/config.rs:36` appends `remem.log`, `src/runtime_config.rs:90` appends
+`config.toml`, and `load_cipher_key()` appends `.key`.
 
 **The Keychain service is not a code path.** `load_cipher_key()` checks the
-environment variable and the `.key` file, and nothing else. The service name
-`remem-cipher-key` appears only in the user's `.zshrc` wrapper function, which
-reads it and exports `REMEM_CIPHER_KEY` before invoking the binary. This is
-worth stating precisely because it changes the migration design: the binary has
-no business writing to the credential store it does not read from. R6 adds
-first-class Keychain support; until then the service name is the user's
-concern, not the program's.
+environment variable and the `.key` file, and nothing else. `remem-cipher-key`
+exists only in the user's `.zshrc` wrapper, which reads it and exports
+`REMEM_CIPHER_KEY`. The binary has no business writing to a credential store it
+does not read from; R6 adds first-class Keychain support.
 
 **Distribution identity.** `Cargo.toml` for crates.io, `npm/remem/package.json`
 as `@remem-ai/remem`, `server.json` as `io.github.majiayu000/remem`,
 `plugins/remem/.codex-plugin/plugin.json`, and
-`plugins/remem/runtimes/remem-releases.json`, which maps versions to release
-assets and is read by `plugins/remem/scripts/remem-runtime.js`.
+`plugins/remem/runtimes/remem-releases.json`, read by
+`plugins/remem/scripts/remem-runtime.js`.
+
+**Governance.** `scripts/ci/` holds 5,745 lines of Python and `checks/` another
+20 modules. Root-level `labels.yaml`, `states.yaml`, `workflow.yaml`, and
+`skills-lock.json` configure SpecRail, and `.agents/skills/` carries
+`remem-first-run-smoke` and `remem-plugin-version-sync`. `AGENTS.md:89`
+mandates `check_pr_preflight.py` as the local preflight, so that script is
+required by the agent router even though no workflow invokes it.
 
 **CI.** `.github/workflows/ci.yml` is one 237-line `check` job on
-`ubuntu-latest`. Its first fifteen steps are inherited governance; `cargo fmt`
-appears at line 188 and `cargo test` at line 237, last. `release.yml` runs five
-publish jobs behind a preflight requiring `CRATES_IO_TOKEN`,
-`HOMEBREW_TAP_TOKEN`, and `NPM_TOKEN`. `auto-release.yml` fires on every
-successful CI run on `main` and dispatches that release.
+`ubuntu-latest`. `cargo fmt` appears at line 188 and `cargo test` at line 237,
+last. It triggers on `push: branches: [main]` and `pull_request`, so pushing a
+feature branch exercises nothing; only a pull request does.
+
+**Release.** `release.yml` runs five publish jobs behind a preflight requiring
+three secrets, and packages the binary alone at line 84, with no `LICENSE`.
+`auto-release.yml` fires on every green CI run on `main`, and carries the only
+checks that tie a tag to a verified commit: exact-main-SHA verification and
+immutable-tag handling.
+
+**Repository protection does not exist.** `gh api` reports `rulesets: []`,
+`branches/main/protection` 404 "Branch not protected", `environments: 0`, and
+`actions/runners: total_count 0`.
 
 ## Design
 
 ### Phase ordering
 
-Deletion precedes renaming because roughly 6,000 lines slated for removal
-contain the old name; renaming them first would be wasted work. CI rebuild
-precedes the rename because the rename needs a gate that actually reaches
-`cargo test`, which today's CI does not. The local reset follows the rename
-because it installs the renamed build. Release comes last because it is the
-only phase whose verification requires a tag.
+Governance and protection come first because the later phases assume a
+trustworthy gate and a protected tag, and neither exists today. CI rebuild
+follows, because the rename needs a gate that actually reaches `cargo test`.
+The rename follows that. The local cutover and the release come last, each
+depending on a renamed, tested tree.
 
-### Phase 0 - Prune
+### Phase 0 - Governance trim and repository protection
 
-Removed workflows: `closure-audit.yml` and `sensitive-governance.yml`, both
-triggered by `pull_request_target` with `issues: write`. On a public repository
-those are also an attack surface, so removing them is a security improvement
-independent of the process argument.
+Two coherent changes, not a pile of deletions.
 
-Removed from `scripts/ci/`: `run_sensitive_implement_gate.py`,
-`check_pr_tier.py`, `check_spec_lifecycle.py`, `closure_follow_up.py`,
-`check_pr_preflight.py`, `extract_nonclosing_issue.py`, `specrail_sync_lock.py`,
-`check_public_claims.py`, `check_public_surface.py`,
-`check_release_workflows.py`, and the six `test_*.py` files that exercise them.
-`check_pr_preflight.py` and `test_schema_contract.py` are already dead, wired
-into no workflow.
+Removed: `closure-audit.yml` and `sensitive-governance.yml`, both
+`pull_request_target` with `issues: write`, which on a public repository is an
+attack surface as well as dead process. From `scripts/ci/`:
+`run_sensitive_implement_gate.py`, `check_pr_tier.py`, `check_spec_lifecycle.py`,
+`closure_follow_up.py`, `extract_nonclosing_issue.py`, `specrail_sync_lock.py`,
+and the six `test_*.py` files exercising them. Also `checks/`, `.specrail/`,
+`scripts/sync-specrail-checks.sh`, root `labels.yaml`, `states.yaml`,
+`workflow.yaml`, `skills-lock.json`, `npm/`, `server.json`, and the `epic`,
+`spec`, and `implementation` issue templates.
 
-Also removed: `checks/` (20 modules, the package those tests import from),
-`.specrail/`, `scripts/sync-specrail-checks.sh`, `npm/`, `server.json`, and the
-`epic`, `spec`, and `implementation` issue templates.
+Retained, because each still gates something real: `check_pr_preflight.py`
+(mandated by `AGENTS.md`, and rewired to invoke only surviving checks),
+`check_plugin_version_sync.py`, `check_public_surface.py`,
+`check_public_claims.py`, `check_release_workflows.py`, `check_file_size.py`,
+`check_version_bump.py`, `generate_plugin_release_manifest.py`, and
+`smoke_native_web_api.sh`.
 
-Retained: `check_file_size.py`, `check_version_bump.py`,
-`generate_plugin_release_manifest.py`, `smoke_native_web_api.sh`, and
-`check_plugin_version_sync.py` narrowed from four version sources to two,
-`Cargo.toml` and the plugin runtime manifest, since npm and the MCP registry no
-longer exist to synchronize against.
+`AGENTS.md` and the pull request template are updated in the same commit to
+describe exactly what survives. Leaving agent instructions pointing at deleted
+executables is the failure mode this phase exists to avoid.
+
+Protection is configured in this phase because Phase 1 onward describes work as
+"merged behind green CI", which is currently unenforced:
+
+- branch protection on `main` requiring the CI check and a linear history;
+- a ruleset over `refs/tags/v*` restricting creation and blocking updates and
+  deletes, so a published tag is immutable;
+- a `release` environment with required reviewers, referenced by every
+  publishing job.
 
 ### Phase 1 - CI rebuild
 
-Two jobs replace the single one.
+Three jobs, all on hosted runners.
 
-`rust`, on `ubuntu-latest`: `cargo fmt --check`, `cargo clippy --all-targets --
--D warnings`, `cargo test`, then `check_file_size.py`, the native web API
-smoke, `eval-extraction --json --check-baseline`, `eval-gates`, and the two
-constructed-regression proofs that assert the gates actually block. The Rust
-steps run first so a compile or test failure reports in minutes rather than
-behind a governance queue.
+`rust` on `ubuntu-latest`, in order: `cargo fmt --check`, `cargo clippy
+--all-targets -- -D warnings`, `cargo test --locked`, then `check_file_size.py`,
+`check_plugin_version_sync.py`, `check_public_surface.py`,
+`check_public_claims.py`, `check_release_workflows.py`, the Node plugin tests,
+the native web API smoke, an isolated first-run smoke, `eval-extraction --json
+--check-baseline`, `eval-gates`, and the two constructed-regression proofs.
 
-`macos`, on `[self-hosted, macOS, ARM64]`: `cargo build` and `cargo test`
-natively, guarded by
+`macos-arm` on `macos-15` and `macos-intel` on `macos-15-intel`: `cargo build`
+and `cargo test`. GitHub's hosted images cover both architectures;
+`macos-latest`, `macos-14`, `macos-15`, and `macos-26` are ARM64, and the
+`-intel` suffixed labels are x86_64. No self-hosted runner is registered.
+Attaching a personal machine to a public repository would put the Keychain
+holding the database key within reach of any pull request, and hosted ARM
+removes the need entirely.
 
-```yaml
-if: >-
-  github.event_name != 'pull_request' ||
-  github.event.pull_request.head.repo.full_name == github.repository
-```
+`--no-default-features` stays on `x86_64-apple-darwin` even on a native Intel
+host. The ort constraint is on the target, not the builder: ONNX Runtime ships
+no prebuilt binary for that target, so embedding falls back to the feature-hash
+provider there and the degradation stays visible in `status` and `doctor`.
 
-so a pull request from an untrusted clone never executes on the runner's
-machine. The repository setting *Actions -> Require approval for all outside
-collaborators* backs this up; the guard is the control, the setting is the
-backstop.
+The Node plugin tests are retained deliberately. Deleting `npm/` removes the npm
+wrapper test, not the plugin runtime, request-security, and app-server tests,
+and this plan promises the plugin stays functional.
 
-The eval gates are retained deliberately. `eval-extraction --check-baseline` is
-the regression gate for exactly the extraction reliability R1 is about, and
-losing it would make R1's quality changes unmeasurable.
+The isolated first-run smoke sets a temporary `HOME` and `RECOL_DATA_DIR`,
+initializes, and confirms a clean start. Without it, nothing verifies that the
+renamed data path works on a machine that has never had the old one.
+
+Verification uses a pull request, not a branch push, because `push` triggers only
+on `main`.
 
 ### Phase 2 - Rename
 
-A scripted pass over an explicit include-list of paths, not a repository-wide
-substitution. Four case variants are handled: `remem`, `REMEM`, `Remem`, and
-the compound `remem-ai`.
+A scripted pass driven by an explicit manifest of paths and exceptions, not a
+repository-wide substitution.
 
-In scope: `src/` except `src/migrations/`, `tests/`, `Cargo.toml`,
-`Cargo.lock`, `plugins/`, `.github/`, `scripts/`, `install.sh`, `Dockerfile`,
-`README.md`, `README.zh-CN.md`, `AGENTS.md`, `CLAUDE.md`, `AGENT_USAGE.md`,
-`CONTRIBUTING.md`, `SECURITY.md`, `.agents/`, `prompts/`, `schemas/`, and
-`docs/plan/`.
+**Substitution order matters.** `remem-ai` is replaced before `remem`;
+otherwise the sequential pass produces `recol-ai`. Case variants handled:
+`remem-ai`, `remem`, `REMEM`, `Remem`.
 
-Frozen: `src/migrations/`, `specs/`, `eval/`, `site/`, `CHANGELOG.md`, and the
-audit and analysis documents under `docs/`.
+**In scope**, beyond the obvious `src/`, `tests/`, `Cargo.toml`, `plugins/`,
+`.github/`, `scripts/`, `install.sh`, `Dockerfile`, and the root markdown
+files: `site/`, `eval/local/run_local_eval.py`, `eval/locomo/run_locomo.py`,
+`CHANGELOG.md`, `.agents/skills/remem-first-run-smoke/` and
+`remem-plugin-version-sync/`, `assets/`, `prompts/`, `schemas/`, the tracked
+`.remem/` directory, and `docs/plan/`. Current architecture, plugin, and release
+documents are updated; historical audits are not.
 
-The migration freeze is a correctness constraint, not a preference.
-`v011_reprice_ai_usage_events.sql` sets `ai_usage_events.pricing_source` to the
-literal `remem_static`, and matches on `remem_static` and
-`remem_static_backfill`. `v063_procedure_exports.sql` declares a column
-`remem_version`.
+**Filenames are inventoried, not just contents.** `plugins/remem/` and its
+`apps/remem/` and `skills/remem/` subtrees, the four `remem-*.js` runtime
+scripts including `remem-runtime.test.js`, `runtimes/remem-releases.json`, the
+two `.agents/skills/remem-*` directories, and the tracked `.remem/` directory.
 
-Deleting the current database does not relax this. Applied migrations are
-immutable by construction, and every database they build, including one created
-fresh after the rename, stores those same literals and that same column name.
-Renaming them in the SQL while the Rust still matches on the old strings, or
-the reverse, breaks the pricing lookup silently rather than loudly. Any Rust
-code comparing against them keeps the literal; only new migrations use the new
-name.
+**Frozen paths**: `src/migrations/`, `specs/`, `eval/`'s artifacts
+(`golden.json`, the claims registry, locomo fixtures, `eval/public/reports/`),
+and the audits and analyses under `docs/`.
 
-Directory moves: `plugins/remem/` to `plugins/recol/`, `plugins/remem/apps/remem/`
-to `plugins/recol/apps/recol/`, `plugins/remem/skills/remem/` to
-`plugins/recol/skills/recol/`, and the four `remem-*.js` runtime scripts to
-`recol-*.js`. `runtimes/remem-releases.json` becomes `recol-releases.json`,
-which `generate_plugin_release_manifest.py` and `release.yml` both reference.
+**Preserved-literal allowlist.** These strings do not change anywhere, and the
+rename audit asserts they are still present rather than absent:
 
-Repository URLs move from `majiayu000/remem` to `maxkulish/recol`, and the
-homepage from `majiayu000.github.io/remem` to the fork's own, or is dropped
-where no replacement exists.
+| Literal | Frozen in | Also live in |
+|---|---|---|
+| `remem_static` | `v010_ai_usage_token_breakdown.sql:7` | `src/db/usage.rs:75`, `src/ai/pricing.rs:23`, `src/ai/tests.rs:128`, `src/db/query/stats/tests.rs` |
+| `remem_static_backfill` | `v011_reprice_ai_usage_events.sql:88` | `src/migrate/tests.rs:367` |
+| `remem_version` | `v063_procedure_exports.sql:14` | `src/memory/procedure/registry.rs:84,93`, `src/memory/procedure/export/render.rs:343` |
+| `Copyright (c) 2026 majiayu000` | `LICENSE:3` | release archives |
 
-### Phase 3 - Local reset
+`remem_version` is a live column, written by the procedure registry and emitted
+as an export key. Renaming the SQL while the Rust holds, or the reverse, breaks
+the procedure export silently.
 
-No code. The database is a reproducible test corpus and the installed binary
-came from crates.io, so both are deleted rather than migrated.
+**Version.** `Cargo.toml` moves to 0.7.0 and gains `publish = false`. The bump
+is required by `check_version_bump.py`, whose `TRIGGER_PREFIXES` are `src/` and
+`migrations/`, and 0.7.0 rather than a patch because renaming the binary, the
+environment, and the data path without compatibility is breaking. `Cargo.lock`,
+`plugin.json`, the release manifest, and `CHANGELOG.md` move with it, and
+`check_plugin_version_sync.py` is updated in the same commit for the new lock
+key and the removed npm and `server.json` sources.
 
-An earlier draft specified a `recol migrate` subcommand that would copy the
-database, verify row counts, and re-key the Keychain. That design existed only
-to protect state that turned out to be disposable. Building it would have added
-a subcommand, its tests, and a `doctor` check, all to preserve something a
-single `ingest-sessions` run regenerates.
+**The rename audit** replaces the impossible assertion an earlier draft used.
+It walks the in-scope manifest, ignores frozen paths, subtracts the
+preserved-literal allowlist, and fails on any remaining occurrence. It also
+asserts each allowlisted literal is still present, so a careless pass that
+removed them fails too.
 
-What remains is a short sequence of manual commands: remove the crates.io
-binary, remove `~/.remem`, generate a fresh cipher key into the Keychain under
-`recol-cipher-key`, update the `.zshrc` wrapper to read it and export
-`RECOL_CIPHER_KEY`, install the project build, and re-ingest.
+### Phase 3 - Recoverable local cutover
 
-Generating a new key rather than carrying the old one across is deliberate. The
-old key exists to decrypt a database that is being deleted, so reusing it
-inherits a secret for no reason.
+The database holds no curated state, but extraction task 1 is R1's replay target
+and is not reproducible. The cutover is staged so every step is reversible until
+the last.
 
-### Phase 4 - Release and Homebrew
+1. Inventory: record table row counts from the old installation as a baseline.
+2. Export the two artifacts that matter, extraction task 1 and `config.toml`, as
+   named files, so R1 does not have to unpack 198 MB to find one row.
+3. Snapshot: an encrypted archive of `~/.remem` to a rollback location.
+4. Install the renamed build and, under a fresh `RECOL_DATA_DIR`, re-ingest and
+   run representative searches, comparing against the inventory.
+5. Only then move `~/.remem` aside and update the Keychain and the `.zshrc`
+   wrapper. Delete the old directory and the old Keychain entry after the new
+   installation has been verified, not before.
 
-`release.yml` preflight requires only `HOMEBREW_TAP_TOKEN`.
+### Phase 4 - Release, staged then published
 
-The build matrix keeps four targets. `aarch64-apple-darwin` moves to the
-self-hosted M1 runner and builds natively with default features.
-`x86_64-apple-darwin` stays on `macos-latest` with `--no-default-features`,
-since ONNX Runtime ships no prebuilt binary for Intel macOS and the build
-cannot link it. The two Linux targets stay on `ubuntu-latest`, with the ARM64
-cross-compilation toolchain as today.
+`release.yml` preflight requires `HOMEBREW_TAP_TOKEN` alone, and adds a check
+proving the tag commit is the exact commit that passed CI on `main`, replacing
+what `auto-release.yml` provided. Publishing jobs reference the `release`
+environment, so a human approves.
 
-The tap job checks out `maxkulish/homebrew-tap` and writes `Formula/recol.rb`
-declaring `class Recol`, with the four platform URLs and checksums read from
-the release's `SHA256SUMS`. `publish-crate`, `publish-npm`, and
-`publish-mcp-registry` are deleted, as is `auto-release.yml` and its helper
-`auto_release_check_tag_state.sh`. Releases are cut by pushing a `v*` tag or by
-`workflow_dispatch` on a tag ref.
+The build matrix runs `aarch64-apple-darwin` on `macos-15`,
+`x86_64-apple-darwin` on `macos-15-intel` with `--no-default-features`, and both
+Linux targets on `ubuntu-latest`. Builds use `--locked`.
 
-The formula's `caveats` block, which today instructs the user to run
-`remem install --target claude`, is rewritten. That command wires SessionStart
-injection and PostToolUse capture, which this project's design rejects; the
-caveats should point at `recol doctor` instead.
+**Archives contain the binary and `LICENSE`.** The MIT notice must accompany
+every copy, and the upstream copyright line is preserved.
+
+**Staging never touches the production tap.** An earlier draft tagged a
+throwaway prerelease, let it update `Formula/recol.rb`, then deleted the tag and
+release, which would have left Homebrew pointing at deleted assets. Instead the
+tap job runs in dry-run mode for prereleases, writing the formula to a staging
+branch of the tap and not to `main`. Release-candidate assets are retained
+immutably; nothing referenced by the production formula is ever deleted.
+
+**The plugin manifest needs a post-release transition.** The checked-in
+`recol-releases.json` is `state: "unreleased"`, and
+`plugins/recol/scripts/recol-runtime.js:359` returns `null` for that state
+before it ever consults a base URL, so uploading the manifest to the release
+does not activate remote resolution. After the release publishes, a follow-up
+commit updates the checked-in manifest with the published base URL and
+checksums. This is verified by a smoke that runs with no repository binary and
+nothing matching on `PATH`, and asserts the runtime downloads, verifies,
+installs, and starts.
+
+`brew audit --strict` and `brew test` run against the published formula, plus a
+clean `brew install` on a machine without a prior installation.
+
+`auto-release.yml` and `auto_release_check_tag_state.sh` are deleted, their
+guarantees having moved into the tag ruleset and the release preflight.
+`docs/release-lifecycle.md` is rewritten for two channels and tag-driven
+releases.
 
 ## Tests
 
-Phase 0 verifies by exclusion: `cargo test` exits 0 and no removed file is
-referenced by a surviving workflow, checked with `rg` over `.github/`.
+Phase 0 verifies by pull request: CI passes with the trimmed gate set, and `rg`
+over `.github/`, `AGENTS.md`, and the PR template finds no reference to a
+removed executable. Protection is verified by attempting a direct push to
+`main` and a tag delete, both of which must be refused.
 
-Phase 1 verifies on a branch push, which exercises the hosted job, and by
-confirming the macOS job is skipped on a pull request from a clone and runs on
-a push to `main`.
+Phase 1 verifies on a pull request, since `push` triggers only on `main`. All
+three jobs must run, and a deliberately broken test must fail the `rust` job in
+minutes.
 
-Phase 2 verifies with the existing suite plus two new assertions: `rg -i remem`
-over the in-scope paths returns nothing, and `rg -n "remem_static|remem_version"`
-over `src/` returns only the frozen migrations and the Rust literals that must
-match them.
+Phase 2 verifies with the full suite plus the rename audit described above.
 
-Phase 3 has no tests of its own. It is verified by outcome: `which remem`
-returns nothing, `~/.remem` does not exist, and `recol status` opens a database
-under `~/.recol` that a fresh `ingest-sessions` run has populated.
+Phase 3 verifies by comparing post-re-ingest row counts against the recorded
+inventory and by running representative searches, before anything is deleted.
 
-Phase 4 verifies against a prerelease tag on a throwaway version, confirming
-four tarballs, a `SHA256SUMS` covering them, a formula commit in the tap, and
-`brew install --build-from-source` succeeding, before the first real tag.
+Phase 4 verifies against a release candidate that does not touch the production
+tap, then the plugin download smoke, `brew audit`, `brew test`, and a clean
+install, before the first production tag.
 
 ## Risks
 
 **The `.zshrc` wrapper lives outside the repository.** It references both
 `remem-cipher-key` and the `remem` command, and no repository change can update
-it. If it is not edited, every post-rename invocation fails with "refusing to
-open remem database without a SQLCipher key", which reads like an unrelated
-error. The plan calls this out as an explicit manual step rather than assuming
-it. This is the largest remaining risk, which is a measure of how much deleting
-the database removed.
+it. Until it is edited, every invocation fails with a key error that reads like
+something unrelated. Called out as an explicit manual step.
 
-**Re-ingestion is not free.** Rebuilding the archive means reprocessing roughly
-1,900 transcript files and 22,555 messages. It costs wall-clock time, though no
-model calls, since `ingest-sessions` does not feed the extraction pipeline. If
-a later phase needs the corpus present, re-ingest before that phase rather than
-after.
+**Re-ingestion costs wall-clock time.** Roughly 1,900 files and 22,555 messages,
+though no model calls, since `ingest-sessions` does not feed extraction. Re-ingest
+before any phase that needs the corpus present.
 
-**The self-hosted runner is attached to a public repository.** Untrusted pull
-request code executing on that machine would have access to the Keychain
-holding the database key. Mitigated by the trigger guard and the
-outside-collaborator approval setting, both required before the runner is
-registered.
+**A blanket substitution would corrupt data semantics.** Running `sed` across the
+tree would rewrite `remem_static` and `remem_version` and break the pricing
+lookup and procedure export against values already stored. Mitigated by the
+manifest, the allowlist, and the audit's presence assertions.
 
-**A blanket substitution would corrupt data semantics.** Running `sed` across
-the tree would rewrite `remem_static` inside applied migrations and break the
-match against values already stored. Mitigated by the explicit include-list and
-by the post-rename assertion that the frozen literals survived.
+**The plugin resolver is the least-tested path.** It only matters after a real
+release, which is precisely when it is hardest to fix. The no-binary download
+smoke exists so the failure surfaces in CI rather than on a user's machine.
 
-**Detachment closes the upstream pull request path.** R5 and R6 are classified
-`upstream`, and offering them now requires a fresh fork. This does not block any
-work, but the roadmap's classification column should be read as aspiration
-rather than a route that currently exists.
+**Detachment closes the upstream pull request path.** R5 and R6's `upstream`
+classification describes intent, not an available route.

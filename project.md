@@ -45,27 +45,35 @@ The GitHub fork was detached on 2026-07-27, so this is a standalone repository
 whose crate, binary, 138 environment variables, on-disk paths, and five
 publishing channels all still carry the old name.
 
-Five phases, each a branch merged behind green CI, in dependency order:
+Five phases, each a branch merged through a pull request, in dependency order:
 
-- **P0 Prune.** Delete the inherited governance layer: two `pull_request_target`
-  workflows, ~4,900 lines of SpecRail and PR-tier Python, `checks/`, `npm/`, and
-  `server.json`. Deletion only, so a green suite proves the removals were inert.
-- **P1 CI rebuild.** Two jobs replacing one. Rust gates run first on hosted
-  ubuntu; a self-hosted M1 runner covers macOS, guarded so pull requests from
-  untrusted clones never execute on it.
-- **P2 Rename.** Scripted pass over an explicit include-list, four case
-  variants. `src/migrations/`, `specs/`, `eval/`, `site/`, and the `docs/`
-  audits keep the old name.
-- **P3 Local reset.** Manual. Delete the crates.io binary and `~/.remem`,
-  generate a fresh key, update the `.zshrc` wrapper, install from source,
-  re-ingest.
-- **P4 Release.** GitHub Releases plus `maxkulish/homebrew-tap`. crates.io,
-  npm, MCP-registry publishing and `auto-release.yml` are deleted.
+- **P0 Governance trim and protection.** Delete the heavy machinery
+  (sensitive-governance, PR-tier, closure-audit, spec-lifecycle, both
+  `pull_request_target` workflows, `checks/`, root SpecRail config, `npm/`,
+  `server.json`). Keep the lightweight gates, including `check_pr_preflight.py`,
+  which `AGENTS.md:89` mandates. Update `AGENTS.md` and the PR template in the
+  same commit. Configure branch protection, a `v*` tag ruleset, and a `release`
+  environment, none of which exist today.
+- **P1 CI rebuild.** Three hosted jobs. Rust gates first on `ubuntu-latest`,
+  plus `macos-15` (ARM64) and `macos-15-intel`. No self-hosted runner: hosted
+  ARM macOS exists, so attaching a personal machine holding the database
+  Keychain key to a public repo is unnecessary.
+- **P2 Rename.** Manifest-driven pass with a preserved-literal allowlist and a
+  rename audit written before the rename. Version moves to 0.7.0 with
+  `publish = false`.
+- **P3 Recoverable cutover.** Inventory, export extraction task 1 and
+  `config.toml`, snapshot, verify the new install answers searches, and only
+  then retire the old directory and Keychain entry.
+- **P4 Release, staged then published.** RC never touches the production tap.
+  Archives carry `LICENSE`. A post-release commit flips the plugin manifest out
+  of `state: "unreleased"`, which otherwise blocks remote resolution.
 
-Frozen for correctness, not preference: `v011_reprice_ai_usage_events.sql`
-writes the literal `remem_static` into `ai_usage_events.pricing_source` and
-`v063_procedure_exports.sql` declares a column `remem_version`. Applied
-migrations are immutable.
+Frozen for correctness, not preference. `v010` and `v011` bind
+`remem_static` / `remem_static_backfill`, and `v063` declares column
+`remem_version`. The freeze extends into `src/`: the same literals live in
+`src/db/usage.rs`, `src/ai/pricing.rs`, `src/memory/procedure/registry.rs`, and
+`src/memory/procedure/export/render.rs`. Renaming one side and not the other
+breaks pricing lookup and procedure export silently.
 
 ### 1. R1 - Reliable extraction output
 
@@ -185,10 +193,12 @@ These are established, not open questions. Re-deriving them wastes a session.
   changes needs `cargo run --` or `cargo install --path .`, otherwise you are
   exercising upstream and will conclude your change did nothing. R0 phase 3
   removes it.
-- **The database at `~/.remem/remem.db` is a disposable test corpus.** It is
-  reproducible by re-running `ingest-sessions` against transcripts still on
-  disk, so R0 deletes rather than migrates it. Do not design around preserving
-  it.
+- **The database holds no curated state, but two things in it are not
+  reproducible.** `status` reports Memories 0, Observations 0, Sessions 0,
+  Candidates 0, Graph queue 0, so the 22,555-message archive is rebuildable by
+  re-running `ingest-sessions`. Extraction task id 1 (`Extract fail: 1`) and
+  `config.toml` are not: task 1 is R1 step 2's replay target. Export both before
+  any cutover.
 - **The repository is detached from `majiayu000/remem`.** Cherry-picking from
   the `upstream` remote still works; opening a pull request against it does
   not, and would need a fresh fork.
