@@ -488,7 +488,7 @@ correct and expected; Task 4's proof is already recorded.
 
 ```bash
 env -u REMEM_CIPHER_KEY \
-    REMEM_DATA_DIR=~/Backups/recol/2026-07-31/restore-test/.remem \
+    REMEM_DATA_DIR=$HOME/Backups/recol/2026-07-31/restore-test/.remem \
     command remem status --json > ~/Backups/recol/2026-07-31/inventory.json
 echo "exit=$?"
 ```
@@ -524,7 +524,7 @@ either is 0, the snapshot does not contain what R1 needs.
 
 ```bash
 env -u REMEM_CIPHER_KEY \
-    REMEM_DATA_DIR=~/Backups/recol/2026-07-31/restore-test/.remem \
+    REMEM_DATA_DIR=$HOME/Backups/recol/2026-07-31/restore-test/.remem \
     command remem doctor --json > ~/Backups/recol/2026-07-31/doctor.json
 jq -r '.checks[] | select(.name | test("schema"; "i")) | "\(.name) [\(.status)] \(.detail)"' \
   ~/Backups/recol/2026-07-31/doctor.json
@@ -654,21 +654,25 @@ cp "$DEST/remem-cipher-key.txt" "$DEST/.remem/.key"
 chmod 600 "$DEST/.remem/.key"
 ```
 
+The key must be copied into `.remem/.key` because `load_cipher_key()` reads
+`REMEM_CIPHER_KEY` first, then `<data_dir>/.key`, and nothing else - the
+binary will not find the key sitting beside the data directory.
+
+Verify the restore against `baseline.sha256` before trusting it:
+
+```bash
+cd "$DEST" && shasum -a 256 -c /Users/mk/Backups/recol/2026-07-31/baseline.sha256
+```
+
+Run that **before** any `status` or `doctor` command. Those open the database
+read-write and run migrations, after which the checksums no longer match.
+
 Then point the binary at it. The variable name follows whatever the binary is
 called at the time - `REMEM_DATA_DIR` before the rename, `RECOL_DATA_DIR` after:
 
 ```bash
 RECOL_DATA_DIR="$DEST/.remem" recol status
 ```
-
-Verify the restore against `baseline.sha256` before trusting it:
-
-```bash
-cd "$DEST" && shasum -a 256 -c /path/to/baseline.sha256
-```
-
-Run that **before** any `status` or `doctor` command. Those open the database
-read-write and run migrations, after which the checksums no longer match.
 
 ## What this snapshot is for
 
