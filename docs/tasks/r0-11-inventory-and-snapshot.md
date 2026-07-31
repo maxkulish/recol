@@ -15,7 +15,7 @@ task going wrong. Run it before starting R0-01.
 
 ## Context
 
-`recol status` reports Memories 0, Observations 0, Sessions 0, Candidates 0,
+`remem status` reports Memories 0, Observations 0, Sessions 0, Candidates 0,
 Graph queue 0. There is no curated state. The 22,555-message raw archive is
 reproducible by re-running `ingest-sessions` against transcripts still on disk.
 
@@ -27,29 +27,47 @@ failure as configuration or structural.
 **There is no export subcommand for an extraction task.** The CLI has no dump
 path - `--replay-range-id` replays, it does not extract. So the encrypted
 snapshot *is* the artifact, and R1 step 2 works by restoring the snapshot into a
-scratch `RECOL_DATA_DIR` and replaying there. Do not plan around extracting a
+scratch `REMEM_DATA_DIR` and replaying there. Do not plan around extracting a
 single row.
 
-`config.toml` records host `codex-cli`, model `gpt-5.6-luna`, reasoning `low`.
-Trivially recreatable, but capture it anyway - it is 937 bytes.
+**The snapshot must carry its own key.** There is no `.key` file in `~/.remem`.
+`load_cipher_key()` at `src/db/crypto.rs:36` reads `REMEM_CIPHER_KEY`, then
+`<data_dir>/.key`, and nothing else; the key lives only in Keychain service
+`remem-cipher-key`, which R0-13 deletes. An archive of the directory alone
+becomes unreadable ciphertext the moment R0-13 completes.
 
-Commands need `REMEM_CIPHER_KEY` in the environment. The `.zshrc` wrapper
-supplies it interactively; a fresh agent shell does not.
+**Reading the inventory from the live installation mutates it.** `remem status`
+reaches `open_db()` at `src/db/core.rs:127`, which runs migrations against a
+`journal_mode=WAL` store, and any command appends to `~/.remem/remem.log`. The
+inventory is therefore read from the restored copy, not the original.
+
+At R0-11 time the rename has not happened. The binary is `remem` and the
+variable is `REMEM_DATA_DIR`.
+
+Full procedure: `docs/specs/r0-11-inventory-and-snapshot/TECH.md`.
+Execution plan: `docs/plan/20-rename-and-release/r0-11-execution-plan.md`.
 
 ## Scope
 
-- [ ] Record a table-count inventory from `status`
-- [ ] Encrypted archive of the whole `~/.remem` directory, stored outside it
-- [ ] Prove the archive restores and opens
+- [ ] Cold checksum baseline of `~/.remem`, taken before anything else runs
+- [ ] Encrypted archive of the whole `~/.remem` directory, carrying the
+      SQLCipher key as a sibling file, stored outside `~/.remem`
+- [ ] Archive passphrase in Keychain service `recol-snapshot-key`, which R0-13
+      does not touch
+- [ ] Prove the archive restores byte for byte and opens with no Keychain lookup
+- [ ] Record a table-count inventory from the restored copy
 
 ## Acceptance criteria
 
-- [ ] An inventory file records at minimum: raw message count, memories,
-      observations, sessions, candidates, extract-fail count, and schema version
-- [ ] The snapshot exists outside `~/.remem` and is larger than 150 MB
-- [ ] Restore test: unpack the snapshot to a scratch directory, point
-      `REMEM_DATA_DIR` at it, and `remem status` reports counts **identical** to
-      the inventory
-- [ ] The restored copy shows `Extract fail: 1` and `Replay todo: 1`
-- [ ] `~/.remem` is byte-identical afterwards: compare
-      `find ~/.remem -type f -exec shasum {} +` before and after
+- [ ] `docs/specs/r0-11-inventory-and-snapshot/INVENTORY.md` records raw message
+      count, memories, observations, sessions, pending candidates, extract-fail
+      count, replay-todo count, and schema version, each with its JSON path
+- [ ] The snapshot exists outside `~/.remem` and is larger than 150 MiB
+- [ ] Restore test: unpack the snapshot to a scratch directory and
+      `shasum -a 256 -c baseline.sha256` reports OK for every file, with no
+      files added or removed
+- [ ] The restored copy opens with `REMEM_CIPHER_KEY` unset and no Keychain
+      lookup, using only the bundled `.key`, and reports `Extract fail: 1` and
+      `Replay todo: 1`
+- [ ] `~/.remem` matches its pre-task baseline: `shasum -a 256 -c` reports OK
+      for every file and the file list is unchanged

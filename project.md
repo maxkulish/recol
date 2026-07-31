@@ -25,6 +25,11 @@ touches nothing else, and is the only task that protects against every other one
 going wrong. There is no export path for extraction task id 1, which R1 step 2
 replays, so the snapshot is the only way to keep it.
 
+R0-11 has a spec at `docs/specs/r0-11-inventory-and-snapshot/` and an execution
+plan at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`. The spec
+corrects three claims in the task file, the load-bearing one being that the
+snapshot must carry its own SQLCipher key or R0-13 renders it unreadable.
+
 Then any of **R0-01**, **R0-03**, or **R0-08** - all unblocked.
 
 ## R0 - Rename, CI refactor, distribution
@@ -43,7 +48,7 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 | [08 Rename manifest and audit](docs/tasks/r0-08-rename-manifest-and-audit.md) | AFK | - | todo |
 | [09 Rename build surfaces, 0.7.0](docs/tasks/r0-09-rename-build-surfaces.md) | AFK | 07, 08 | todo |
 | [10 Rename remaining surfaces](docs/tasks/r0-10-rename-remaining-surfaces.md) | AFK | 09 | todo |
-| [11 Inventory and snapshot](docs/tasks/r0-11-inventory-and-snapshot.md) | HITL | - | todo |
+| [11 Inventory and snapshot](docs/tasks/r0-11-inventory-and-snapshot.md) | HITL | - | in progress |
 | [12 Install and re-ingest](docs/tasks/r0-12-install-and-reingest.md) | HITL | 10, 11 | todo |
 | [13 Retire old installation](docs/tasks/r0-13-retire-old-installation.md) | HITL | 12 | todo |
 | [14 Rewrite release.yml](docs/tasks/r0-14-rewrite-release-workflow.md) | AFK | 04, 10 | todo |
