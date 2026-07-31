@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-07-27.
+Last updated: 2026-07-31.
 
 ## Done
 
@@ -15,22 +15,18 @@ Last updated: 2026-07-27.
 | Roadmap written, R0-R7 | `docs/plan/01-roadmap.md` |
 | R0 spec written and reviewed | `docs/plan/20-rename-and-release/`, revised at `eaf208c7` after a 12-point review |
 | R0 broken into 18 executable tasks | `docs/tasks/` |
+| R0-11 snapshot taken and proven restorable | `~/Backups/recol/2026-07-31/`, inventory at `docs/specs/r0-11-inventory-and-snapshot/INVENTORY.md` |
 
 No code has been written. No CI, workflow, or GitHub setting has been changed.
 
 ## Next
 
-**Start with `docs/tasks/r0-11-inventory-and-snapshot.md`.** It has no blockers,
-touches nothing else, and is the only task that protects against every other one
-going wrong. There is no export path for extraction task id 1, which R1 step 2
-replays, so the snapshot is the only way to keep it.
+**Start with any of R0-01, R0-03, or R0-08** - all unblocked, none depends on
+R0-11.
 
-R0-11 has a spec at `docs/specs/r0-11-inventory-and-snapshot/` and an execution
-plan at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`. The spec
-corrects three claims in the task file, the load-bearing one being that the
-snapshot must carry its own SQLCipher key or R0-13 renders it unreadable.
-
-Then any of **R0-01**, **R0-03**, or **R0-08** - all unblocked.
+R0-11 is done: `~/.remem` is backed up to an encrypted, restore-proven archive
+at `~/Backups/recol/2026-07-31/`. R0-12 (blocked by 10, 11) can proceed once
+R0-10 lands.
 
 ## R0 - Rename, CI refactor, distribution
 
@@ -48,7 +44,7 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 | [08 Rename manifest and audit](docs/tasks/r0-08-rename-manifest-and-audit.md) | AFK | - | todo |
 | [09 Rename build surfaces, 0.7.0](docs/tasks/r0-09-rename-build-surfaces.md) | AFK | 07, 08 | todo |
 | [10 Rename remaining surfaces](docs/tasks/r0-10-rename-remaining-surfaces.md) | AFK | 09 | todo |
-| [11 Inventory and snapshot](docs/tasks/r0-11-inventory-and-snapshot.md) | HITL | - | in progress |
+| [11 Inventory and snapshot](docs/tasks/r0-11-inventory-and-snapshot.md) | HITL | - | done |
 | [12 Install and re-ingest](docs/tasks/r0-12-install-and-reingest.md) | HITL | 10, 11 | todo |
 | [13 Retire old installation](docs/tasks/r0-13-retire-old-installation.md) | HITL | 12 | todo |
 | [14 Rewrite release.yml](docs/tasks/r0-14-rewrite-release-workflow.md) | AFK | 04, 10 | todo |
