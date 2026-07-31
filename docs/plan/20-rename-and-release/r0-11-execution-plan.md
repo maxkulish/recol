@@ -769,6 +769,14 @@ rm -rf ~/Backups/recol/2026-07-31/restore-test
 ls ~/Backups/recol/2026-07-31
 ```
 
+This recursive delete may be refused by a local safety hook that flags it as
+targeting a critical path. If that happens, stop and report BLOCKED; have a
+human run the deletion or explicitly approve a substitute command. Do not work
+around the block by reaching the same end state through a different command
+(for example `find -delete`) - the hook exists so an agent does not get to
+rule the block a false positive and improvise past it on backup and key
+material. This was observed on the 2026-07-31 run.
+
 Expected: `RESTORE.md`, `DO-NOT-DELETE.md`, `baseline.files`, `baseline.sha256`,
 `baseline.stat`, `doctor.json`, `inventory.json`, `remem-snapshot.tar.gpg`,
 `remem-snapshot.tar.gpg.sha256`, `snapshot.tar.sha256`. No `restore-test`.

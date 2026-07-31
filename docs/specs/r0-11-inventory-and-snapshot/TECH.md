@@ -308,6 +308,14 @@ rm -rf "$KEY_DIR" "$RESTORE"
 security find-generic-password -s recol-snapshot-key -w > /dev/null   # expect: exit 0
 ```
 
+These recursive deletes may be refused by a local safety hook that flags them
+as targeting a critical path. If that happens, stop and report BLOCKED; have a
+human run the deletion or explicitly approve a substitute command. Do not work
+around the block by reaching the same end state through a different command
+(for example `find -delete`) - the hook exists so an agent does not get to
+rule the block a false positive and improvise past it on backup and key
+material. This was observed on the 2026-07-31 run.
+
 The restored copy is removed because it holds a plaintext `.key` beside a
 decryptable database. The Keychain check is last so the task does not end having
 discarded the only path back into the archive.
