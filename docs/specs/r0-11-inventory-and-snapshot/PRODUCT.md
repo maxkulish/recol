@@ -64,7 +64,7 @@ output was recorded:
       count, memories, observations, sessions, pending candidates, extract-fail
       count, replay-todo count, and schema version.
 - [ ] The snapshot exists under `~/Backups/recol/2026-07-31/`, outside
-      `~/.remem`, and is larger than 150 MB.
+      `~/.remem`, and is larger than 150 MiB (157286400 bytes).
 - [ ] The snapshot decrypts, extracts, and every extracted file matches the
       pre-snapshot checksum baseline.
 - [ ] The restored copy opens with no `REMEM_CIPHER_KEY` in the environment and

@@ -33,6 +33,11 @@ old name, verified on 2026-07-27, so no host integration breaks here.
 
 ## Scope
 
+**The recursive delete of `~/.remem` may be refused by a local safety hook.**
+If that happens, stop and have a human run the deletion or explicitly approve
+it. Do not substitute a different command to reach the same end state - the
+hook exists for exactly this path.
+
 - [ ] Replace the `.zshrc` wrapper: read `recol-cipher-key`, export
       `RECOL_CIPHER_KEY`, invoke `recol`
 - [ ] `cargo uninstall remem-ai`

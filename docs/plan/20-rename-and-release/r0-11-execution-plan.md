@@ -646,7 +646,8 @@ PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
 security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
 
 mkdir -p "$DEST"
-gpg --batch --decrypt --passphrase-file "$PASS_FILE" remem-snapshot.tar.gpg \
+gpg --batch --decrypt --passphrase-file "$PASS_FILE" \
+    /Users/mk/Backups/recol/2026-07-31/remem-snapshot.tar.gpg \
   | tar -xf - -C "$DEST"
 rm -f "$PASS_FILE"
 
@@ -671,8 +672,15 @@ Then point the binary at it. The variable name follows whatever the binary is
 called at the time - `REMEM_DATA_DIR` before the rename, `RECOL_DATA_DIR` after:
 
 ```bash
-RECOL_DATA_DIR="$DEST/.remem" recol status
+env -u RECOL_CIPHER_KEY RECOL_DATA_DIR="$DEST/.remem" command recol status
 ```
+
+Both `env -u RECOL_CIPHER_KEY` and `command` are required, not optional
+hardening: the `.zshrc` `recol` function injects `RECOL_CIPHER_KEY` read from
+Keychain `recol-cipher-key`, which belongs to the new installation, and
+`load_cipher_key()` checks the environment variable before the `.key` file -
+so without both, the wrapper hands the restored database the wrong key and
+the failure looks like a corrupt archive rather than a wrong key source.
 
 ## What this snapshot is for
 
@@ -680,6 +688,21 @@ Extraction task id 1, from synthetic session `manual-eval-1785099656`. It shows
 as `Extract fail: 1` and `Replay todo: 1`. R1 step 2 replays it to classify the
 extraction failure as configuration or structural. There is no CLI export path
 for a single extraction task, which is why the whole directory was archived.
+
+## When done
+
+Delete `$DEST`. It holds a plaintext `.key` beside a decryptable ~199 MB
+database, and there is no reason to leave that lying around once the replay
+is recorded.
+
+```bash
+rm -rf "$DEST"
+```
+
+This recursive delete may be refused by a local safety hook that flags it as
+targeting a critical path. If that happens, stop and have a human run the
+deletion or explicitly approve it. Do not work around the block by reaching
+the same end state through a different command, such as `find -delete`.
 ```
 
 - [ ] **Step 4: Write `DO-NOT-DELETE.md` beside the archive**

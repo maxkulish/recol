@@ -141,7 +141,7 @@ outcome instead.
 
 ```bash
 SNAP=~/Backups/recol/2026-07-31
-RESTORE=$(mktemp -d)/r0-11-restore
+RESTORE=~/Backups/recol/2026-07-31/restore-test
 
 pgrep -fl 'remem|recol'                    # expect: no output
 lsof ~/.remem/remem.db                     # expect: no output
@@ -212,6 +212,7 @@ find .remem -type f | sort | diff - "$SNAP/baseline.files"   # expect: no output
 ### S4 - Restore and compare
 
 ```bash
+RESTORE=~/Backups/recol/2026-07-31/restore-test
 PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
 security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
 
@@ -233,6 +234,7 @@ equality is stronger and is what is checked.
 ### S5 - Prove the restored copy opens
 
 ```bash
+RESTORE=~/Backups/recol/2026-07-31/restore-test
 cp "$RESTORE/remem-cipher-key.txt" "$RESTORE/.remem/.key"
 chmod 600 "$RESTORE/.remem/.key"
 
@@ -304,6 +306,7 @@ writing to it, which is worth knowing but does not fail the task.
 ### S8 - Clean up
 
 ```bash
+RESTORE=~/Backups/recol/2026-07-31/restore-test
 rm -rf "$KEY_DIR" "$RESTORE"
 security find-generic-password -s recol-snapshot-key -w > /dev/null   # expect: exit 0
 ```
