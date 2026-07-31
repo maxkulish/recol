@@ -190,13 +190,16 @@ print -r -- "pipe status: $pipestatus"     # expect: 0 0 0
 shasum -a 256 "$SNAP/remem-snapshot.tar.gpg" \
   > "$SNAP/remem-snapshot.tar.gpg.sha256"
 ls -l "$SNAP/remem-snapshot.tar.gpg"       # expect: > 157286400 bytes
+rm -f "$PASS_FILE"
 ```
 
 The passphrase is written to Keychain before the archive is built, so a crash
 mid-archive leaves a recoverable secret rather than an undecryptable file.
 
-`$PASS_FILE` is removed at S8. `$KEY_DIR` is removed only after S4 confirms the
-key file is inside the archive.
+`$PASS_FILE` is removed at the end of S2. Because each step runs in its own
+shell, S4 and any later step that needs the passphrase re-reads it from
+Keychain `recol-snapshot-key` into a fresh temp file. `$KEY_DIR` is removed
+only after S4 confirms the key file is inside the archive.
 
 ### S3 - Verify the source is unchanged
 
@@ -209,10 +212,14 @@ find .remem -type f | sort | diff - "$SNAP/baseline.files"   # expect: no output
 ### S4 - Restore and compare
 
 ```bash
+PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
+security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
+
 gpg --batch --yes --decrypt --passphrase-file "$PASS_FILE" \
     "$SNAP/remem-snapshot.tar.gpg" \
   | tar -xf - -C "$RESTORE"
 print -r -- "pipe status: $pipestatus"     # expect: 0 0
+rm -f "$PASS_FILE"
 
 cd "$RESTORE"
 shasum -a 256 -c "$SNAP/baseline.sha256"   # expect: every line OK
@@ -297,7 +304,6 @@ writing to it, which is worth knowing but does not fail the task.
 ### S8 - Clean up
 
 ```bash
-rm -f "$PASS_FILE"
 rm -rf "$KEY_DIR" "$RESTORE"
 security find-generic-password -s recol-snapshot-key -w > /dev/null   # expect: exit 0
 ```
