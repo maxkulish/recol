@@ -662,6 +662,7 @@ binary will not find the key sitting beside the data directory.
 Verify the restore against `baseline.sha256` before trusting it:
 
 ```bash
+DEST=/tmp/remem-restore
 cd "$DEST" && shasum -a 256 -c /Users/mk/Backups/recol/2026-07-31/baseline.sha256
 ```
 
@@ -672,6 +673,7 @@ Then point the binary at it. The variable name follows whatever the binary is
 called at the time - `REMEM_DATA_DIR` before the rename, `RECOL_DATA_DIR` after:
 
 ```bash
+DEST=/tmp/remem-restore
 env -u RECOL_CIPHER_KEY RECOL_DATA_DIR="$DEST/.remem" command recol status
 ```
 
@@ -696,6 +698,7 @@ database, and there is no reason to leave that lying around once the replay
 is recorded.
 
 ```bash
+DEST=/tmp/remem-restore
 rm -rf "$DEST"
 ```
 

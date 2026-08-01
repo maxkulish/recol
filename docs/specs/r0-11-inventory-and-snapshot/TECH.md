@@ -156,6 +156,7 @@ archive up.
 ### S1 - Cold checksum baseline
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 cd ~
 find .remem -type f | sort > "$SNAP/baseline.files"
 tr '\n' '\0' < "$SNAP/baseline.files" | xargs -0 shasum -a 256 > "$SNAP/baseline.sha256"
@@ -169,8 +170,10 @@ explained before continuing.
 ### S2 - Build the archive
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
-KEY_DIR=$(mktemp -d); chmod 700 "$KEY_DIR"
+KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
+mkdir -p "$KEY_DIR"; chmod 700 "$KEY_DIR"
 
 openssl rand -base64 32 > "$PASS_FILE"
 security add-generic-password -a "$USER" -s recol-snapshot-key \
@@ -198,12 +201,18 @@ mid-archive leaves a recoverable secret rather than an undecryptable file.
 
 `$PASS_FILE` is removed at the end of S2. Because each step runs in its own
 shell, S4 and any later step that needs the passphrase re-reads it from
-Keychain `recol-snapshot-key` into a fresh temp file. `$KEY_DIR` is removed
-only after S4 confirms the key file is inside the archive.
+Keychain `recol-snapshot-key` into a fresh temp file. `$KEY_DIR` uses a fixed,
+predictable path under `$TMPDIR` rather than `mktemp -d`, because S8 runs in a
+fresh shell and has no other way to name the directory `mktemp -d` created in
+S2. `$TMPDIR` is per-user and not world-writable, so a fixed name under it
+does not reintroduce the shared-`/tmp` risk `mktemp -d` exists to avoid.
+`$KEY_DIR` is removed only after S4 confirms the key file is inside the
+archive.
 
 ### S3 - Verify the source is unchanged
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 cd ~
 shasum -a 256 -c "$SNAP/baseline.sha256"   # expect: every line OK
 find .remem -type f | sort | diff - "$SNAP/baseline.files"   # expect: no output
@@ -212,6 +221,7 @@ find .remem -type f | sort | diff - "$SNAP/baseline.files"   # expect: no output
 ### S4 - Restore and compare
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 RESTORE=~/Backups/recol/2026-07-31/restore-test
 PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
 security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
@@ -234,6 +244,7 @@ equality is stronger and is what is checked.
 ### S5 - Prove the restored copy opens
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 RESTORE=~/Backups/recol/2026-07-31/restore-test
 cp "$RESTORE/remem-cipher-key.txt" "$RESTORE/.remem/.key"
 chmod 600 "$RESTORE/.remem/.key"
@@ -253,6 +264,7 @@ task has failed at its most important claim.
 Assertions:
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 jq -e '.capture_pipeline.extract_failed == 1' "$SNAP/inventory.json"
 jq -e '.capture_pipeline.retryable_replay_ranges == 1' "$SNAP/inventory.json"
 jq -r '.database.path' "$SNAP/inventory.json"   # expect: under $RESTORE
@@ -264,6 +276,7 @@ The third assertion guards against the run having silently fallen back to
 ### S6 - Record the inventory
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 jq '{
   version: .version,
   raw_messages: .totals.raw_messages,
@@ -292,6 +305,7 @@ invocation, and the two-step key placement. R1 reads it months from now, after
 ### S7 - Final verification of the source
 
 ```bash
+SNAP=~/Backups/recol/2026-07-31
 cd ~
 shasum -a 256 -c "$SNAP/baseline.sha256"   # expect: every line OK
 find .remem -type f | sort | diff - "$SNAP/baseline.files"   # expect: no output
@@ -306,6 +320,7 @@ writing to it, which is worth knowing but does not fail the task.
 ### S8 - Clean up
 
 ```bash
+KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
 RESTORE=~/Backups/recol/2026-07-31/restore-test
 rm -rf "$KEY_DIR" "$RESTORE"
 security find-generic-password -s recol-snapshot-key -w > /dev/null   # expect: exit 0
