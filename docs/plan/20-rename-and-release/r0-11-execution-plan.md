@@ -664,17 +664,17 @@ security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
 if [ -e "$DEST" ] && [ -n "$(ls -A "$DEST" 2>/dev/null)" ]; then
   echo "refusing: $DEST exists and is not empty" >&2
   rm -f "$PASS_FILE"
-  exit 1
-fi
-mkdir -p "$DEST"
-gpg --batch --decrypt --passphrase-file "$PASS_FILE" \
-    /Users/mk/Backups/recol/2026-07-31/remem-snapshot.tar.gpg \
-  | tar -xf - -C "$DEST"
-print -r -- "pipe status: $pipestatus"
-rm -f "$PASS_FILE"
+else
+  mkdir -p "$DEST"
+  gpg --batch --decrypt --passphrase-file "$PASS_FILE" \
+      /Users/mk/Backups/recol/2026-07-31/remem-snapshot.tar.gpg \
+    | tar -xf - -C "$DEST"
+  print -r -- "pipe status: $pipestatus"
+  rm -f "$PASS_FILE"
 
-cp "$DEST/remem-cipher-key.txt" "$DEST/.remem/.key"
-chmod 600 "$DEST/.remem/.key"
+  cp "$DEST/remem-cipher-key.txt" "$DEST/.remem/.key"
+  chmod 600 "$DEST/.remem/.key"
+fi
 ```
 
 Expected: `pipe status: 0 0`. A non-zero entry means the archive did not
