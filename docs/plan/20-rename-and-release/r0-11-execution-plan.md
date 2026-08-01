@@ -320,8 +320,10 @@ the trailing newline `security` emits is harmless.
 
 - [ ] **Step 3: Build the archive**
 
-Run this as a single block, in the same shell as Steps 1 and 2, because
-`$PASS_FILE` and `$KEY_DIR` do not survive a new invocation:
+Run this as a single block, in the same shell as Steps 1 and 2: the
+`$PASS_FILE` and `$KEY_DIR` shell variables do not carry into a new
+invocation, even though the directory `$KEY_DIR` names still exists on disk
+once created:
 
 ```bash
 tar -cf - -C ~ .remem -C "$KEY_DIR" remem-cipher-key.txt \
@@ -446,8 +448,11 @@ wc -c ~/Backups/recol/2026-07-31/restore-test/remem-cipher-key.txt
 ```
 
 Expected: the same byte count as Task 3 Step 2. The `$KEY_DIR` from Task 3 may
-now be deleted; if that shell is gone, `mktemp` directories under
-`/var/folders` are cleaned by the system.
+now be deleted, since this is the step that confirms the key file survived
+the round trip. It is a fixed path under `$TMPDIR`, not a `mktemp` one, so
+nothing reclaims it automatically: it holds a plaintext SQLCipher key on disk
+until something explicitly removes it, the way TECH.md S8 does with
+`rm -rf "$KEY_DIR"`.
 
 - [ ] **Step 6: Record the result**
 
