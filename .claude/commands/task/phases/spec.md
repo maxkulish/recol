@@ -30,7 +30,7 @@ Build a context block that gives reviewers the problem framing they need:
 
 - **Linear task**: Fetch via `mcp__linear-server__get_issue` (title, description, labels, comments)
 - **Spec file**: The spec produced in Step 1
-- **Architecture context**: `docs/arch/`, `docs/adrs/` (relevant subset), `.claude/CLAUDE.md` (Core Architecture Principles)
+- **Architecture context**: `docs/adr/`, `docs/adr/` (relevant subset), `.claude/CLAUDE.md` (Core Architecture Principles)
 
 **2b. Build the spec review prompt**
 
@@ -93,7 +93,7 @@ Follow the same pattern as design phase feedback application:
      "[exact suggestion text]"
 
    This conflicts with a prior decision:
-     Source: [docs/adrs/adr-XXX.md]
+     Source: [docs/adr/adr-XXX.md]
      Decision: "[relevant excerpt]"
 
    Options:

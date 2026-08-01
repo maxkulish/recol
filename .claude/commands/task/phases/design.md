@@ -84,9 +84,9 @@
 This step runs automatically after both review files are written. It reads, consolidates, and acts on the actionable items from both AI reviewers without waiting for the user - **except** when a suggestion contradicts a documented prior decision.
 
 **Prior decision sources to load** (read these files before classifying any suggestion):
-- `docs/adrs/` - Architecture Decision Records (61 files)
-- `docs/investigations/` - Spike results and technology evaluations
-- `docs/context/system-patterns.md` - Active patterns and invariants
+- `docs/adr/` - Architecture Decision Records (61 files)
+- `docs/research/` - Spike results and technology evaluations
+- `docs/ARCHITECTURE.md` - Active patterns and invariants
 - `.claude/CLAUDE.md` - Core Architecture Principles and Intent sections
 
 **Step 1 - Extract actionable items from both reviews**
@@ -138,7 +138,7 @@ Suggestion (from [Gemini|Ollama|both]):
   "[exact suggestion text]"
 
 This conflicts with a prior decision:
-  Source: [docs/adrs/adr-002-in-process-whisper.md]
+  Source: [docs/adr/adr-002-in-process-whisper.md]
   Decision: "[relevant excerpt from that document]"
 
 Options:

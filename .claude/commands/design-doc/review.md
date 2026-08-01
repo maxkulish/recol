@@ -64,11 +64,11 @@ TASK: Review the design document at: docs/designs/[DESIGN_DOC_FILENAME]
 
 Read these files to gather context:
 1. docs/designs/[DESIGN_DOC_FILENAME] — The design document to review
-2. docs/arch/ — Architecture documents (read all .md files in this directory)
-3. docs/adrs/ — Architecture Decision Records (60+ files). List filenames first, then read ONLY the ADRs relevant to this design document's topic (typically 5-10 most relevant)
-4. docs/ROADMAP.md — Current project phase and task status
-5. docs/DEPENDENCIES.md — Task dependency graph
-6. docs/PROJECT.md — Active work and blockers
+2. docs/adr/ — Architecture documents (read all .md files in this directory)
+3. docs/adr/ — Architecture Decision Records (60+ files). List filenames first, then read ONLY the ADRs relevant to this design document's topic (typically 5-10 most relevant)
+4. docs/plan/01-roadmap.md — Current project phase and task status
+5. docs/tasks/README.md — Task dependency graph
+6. project.md — Active work and blockers
 
 If the design document references specific source files, read those too for validation.
 
@@ -94,7 +94,7 @@ REVIEW CRITERIA:
    - Error handling strategy
 
 3. ADR COMPLIANCE
-   - List all ADR filenames in docs/adrs/ to understand the full decision landscape
+   - List all ADR filenames in docs/adr/ to understand the full decision landscape
    - Read the ADRs most relevant to this design document's topic (typically 5-10)
    - For each relevant ADR, check if the design document follows or contradicts the decisions
    - Flag any violations or deviations from established ADRs
@@ -116,7 +116,7 @@ REVIEW CRITERIA:
    - Rollback plan exists
 
 7. ARCHITECTURAL ALIGNMENT
-   - Aligns with existing architecture (from docs/arch and docs/adrs)
+   - Aligns with existing architecture (from docs/adr)
    - Follows established patterns
    - Fits within current project phase and dependencies
 
@@ -137,7 +137,7 @@ OUTPUT FORMAT:
 **Concerns**: [Issues to address]
 
 ## 3. ADR Compliance
-[For each ADR in docs/arch/, state whether the design follows it]
+[For each ADR in docs/adr/, state whether the design follows it]
 **Violations**: [Any ADR violations found]
 **New ADR Needed**: [If the design introduces patterns worthy of a new ADR]
 
@@ -196,11 +196,11 @@ Exit command.
 
 Verify these files exist (both models need them):
 - `docs/designs/rec-XX-*.md` — The design document to review
-- `docs/arch/` — Architecture documents directory
-- `docs/adrs/` — Architecture Decision Records (60+ files)
-- `docs/ROADMAP.md` — Project phases and task status
-- `docs/DEPENDENCIES.md` — Task dependency graph
-- `docs/PROJECT.md` — Active work and blockers
+- `docs/adr/` — Architecture documents directory
+- `docs/adr/` — Architecture Decision Records (60+ files)
+- `docs/plan/01-roadmap.md` — Project phases and task status
+- `docs/tasks/README.md` — Task dependency graph
+- `project.md` — Active work and blockers
 
 If any are missing, warn but proceed.
 
@@ -437,10 +437,10 @@ TASK: Review the design document at: docs/designs/${DESIGN_DOC}
 
 Read these files to gather context:
 1. docs/designs/${DESIGN_DOC}
-2. docs/arch/ (all .md files — Architecture Decision Records)
-3. docs/ROADMAP.md
-4. docs/DEPENDENCIES.md
-5. docs/PROJECT.md
+2. docs/adr/ (all .md files — Architecture Decision Records)
+3. docs/plan/01-roadmap.md
+4. docs/tasks/README.md
+5. project.md
 
 If the design document references specific source files, read those too.
 

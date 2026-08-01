@@ -27,7 +27,7 @@ Overall Progress: [X]%
 Phases:
   [x] Discovery  - Complete (approach: [chosen approach])
   [x] Design     - Complete (docs/designs/rec-XX-[...].md)
-  [x] Plan       - Complete (docs/plans/rec-XX-[...].md)
+  [x] Plan       - Complete (docs/plan/rec-XX-[...].md)
   [~] Implement  - In Progress (60% - Phase 3 of 5)
   [ ] PR         - Pending
   [ ] Complete   - Pending
@@ -40,7 +40,7 @@ Recent History:
 Files:
   - Workflow: docs/status/rec-XX-workflow.yaml
   - Design: docs/designs/rec-XX-[description].md
-  - Plan: docs/plans/rec-XX-[description].md
+  - Plan: docs/plan/rec-XX-[description].md
   - Status: docs/status/rec-XX-[description].md
 
 Branch: feat/rec-XX-short-desc

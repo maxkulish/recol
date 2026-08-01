@@ -98,7 +98,7 @@ Your choice:
 
 **Cross-reference with Architecture Document** (if exists):
 
-Read `docs/arch` or `docs/architecture.md` to understand:
+Read `docs/ARCHITECTURE.md` or `docs/adr/` to understand:
 - Overall system architecture
 - Design patterns and conventions
 - Integration points
@@ -137,7 +137,7 @@ Plan Task:
 
 **Read Architecture Document** (if exists):
 
-Read `docs/arch` or `docs/architecture.md` to understand:
+Read `docs/ARCHITECTURE.md` or `docs/adr/` to understand:
 - Where this component fits in the architecture
 - Related modules and dependencies
 - Configuration patterns
@@ -170,7 +170,7 @@ Read `docs/arch` or `docs/architecture.md` to understand:
 - If design doc exists: Use same base name (e.g., `rec-36-websocket-handler.md`)
 - If direct mode: Generate from task title (e.g., `rec-36-cli-parser.md`)
 
-**Create plan file**: `docs/plans/rec-XX-[description].md`
+**Create plan file**: `docs/plan/rec-XX-[description].md`
 
 **Required format**:
 
@@ -179,7 +179,7 @@ Read `docs/arch` or `docs/architecture.md` to understand:
 
 **Linear Task**: https://linear.app/cloud-ai/issue/REC-XX
 **Design Document**: docs/designs/rec-XX-[description].md (or "Direct mode - no design doc")
-**Architecture Reference**: docs/arch (if exists)
+**Architecture Reference**: docs/adr/ (if exists)
 **Created**: [Current Date]
 **Overall Progress**: 0% (0/[total] tasks completed)
 
@@ -280,7 +280,7 @@ mcp__linear-server__save_comment(
 
 A detailed implementation plan has been generated for this task.
 
-**Plan File**: `docs/plans/rec-XX-[description].md`
+**Plan File**: `docs/plan/rec-XX-[description].md`
 **Mode**: [From design document / Direct from Linear task]
 
 **Total Tasks**: [X tasks]
@@ -320,7 +320,7 @@ git checkout -b feat/rec-XX-[short-description]
 ```
 SUCCESS: Implementation plan created!
 
-File: docs/plans/rec-XX-[description].md
+File: docs/plan/rec-XX-[description].md
 Branch: feat/rec-XX-[description]
 Linear: Comment posted to REC-XX
 Mode: [Design doc / Direct]
@@ -328,7 +328,7 @@ Mode: [Design doc / Direct]
 Tasks: [X] total
 
 Next steps:
-1. Review the plan file: docs/plans/rec-XX-[description].md
+1. Review the plan file: docs/plan/rec-XX-[description].md
 2. Start implementation: /plan:implement rec-XX
 3. Update checkboxes as work progresses
 ```
@@ -337,14 +337,14 @@ Next steps:
 
 ## Special Cases
 
-### Case 1: docs/plans/ folder doesn't exist
+### Case 1: docs/plan/ folder doesn't exist
 
 - Create folder automatically: `mkdir -p docs/plans`
 
 ### Case 2: Plan file already exists
 
 ```
-Plan file already exists: docs/plans/rec-XX-[description].md
+Plan file already exists: docs/plan/rec-XX-[description].md
 
 Options:
 1. [overwrite] - Regenerate and overwrite
@@ -408,7 +408,7 @@ If continue: Generate basic template with task title, mark for refinement.
    - Title: "WebSocket Handler Implementation"
    - Phases: 4 phases (Prerequisites, Core, Testing, Validation)
    - Tasks: ~15 tasks extracted
-6. Generate plan: `docs/plans/rec-10-websocket-handler.md`
+6. Generate plan: `docs/plan/rec-10-websocket-handler.md`
 7. Post comment to Linear REC-10
 8. Create branch: `feat/rec-10-websocket-handler`
 9. Confirm to user: "SUCCESS: Implementation plan created!"
@@ -429,7 +429,7 @@ If continue: Generate basic template with task title, mark for refinement.
    - Phase 1: Prerequisites
    - Phase 2: CLI Parser module
    - Phase 3: Testing
-8. Create: `docs/plans/rec-25-cli-argument-parsing.md`
+8. Create: `docs/plan/rec-25-cli-argument-parsing.md`
 9. Post comment to Linear REC-25
 10. Confirm: "SUCCESS: Plan created in direct mode!"
 
@@ -441,6 +441,6 @@ If continue: Generate basic template with task title, mark for refinement.
 - Use `Write` tool to create plan file
 - Use `mcp__linear-server__get_issue` to validate task
 - Use `mcp__linear-server__save_comment` to post updates
-- Use `Bash` with `mkdir -p` to create docs/plans/ if needed
+- Use `Bash` with `mkdir -p` to create docs/plan/ if needed
 - Calculate percentage: (completed tasks / total tasks) * 100
 - **Total task count** must include testing and PR creation tasks

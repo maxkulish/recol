@@ -148,7 +148,7 @@ mcp__linear-server__save_comment(
 
 **Documents**:
 - Design: `docs/designs/rec-XX-[description].md`
-- Plan: `docs/plans/rec-XX-[description].md`
+- Plan: `docs/plan/rec-XX-[description].md`
 - Status: `docs/status/rec-XX-[description].md`
 
 This task is now complete."
@@ -161,7 +161,7 @@ This task is now complete."
 
 #### 6.1: Update PROJECT.md
 
-Read `docs/PROJECT.md` (in main repo) and update:
+Read `project.md` (in main repo) and update:
 
 **Move task from Active Work to Recently Completed**:
 
@@ -183,7 +183,7 @@ After:
 
 #### 6.2: Update ROADMAP.md
 
-Read `docs/ROADMAP.md` and update:
+Read `docs/plan/01-roadmap.md` and update:
 
 **Change task status to Done**:
 
@@ -207,7 +207,7 @@ After:
 
 #### 6.3: Update DEPENDENCIES.md
 
-Read `docs/DEPENDENCIES.md` and update:
+Read `docs/tasks/README.md` and update:
 
 **Remove from Current Blockers** (if REC-XX was blocking anything):
 
@@ -238,7 +238,7 @@ After:
 pwd  # Should show main repo path
 
 # Add and commit (include status files from Steps 8-9 if already updated)
-git add docs/PROJECT.md docs/ROADMAP.md docs/DEPENDENCIES.md docs/status/
+git add project.md docs/plan/01-roadmap.md docs/tasks/README.md docs/status/
 git commit -m "$(cat <<'EOF'
 docs(REC-XX): update aggregation files for completed task
 
@@ -254,7 +254,7 @@ git push origin main
 
 #### If Regular Branch Mode:
 ```bash
-git add docs/PROJECT.md docs/ROADMAP.md docs/DEPENDENCIES.md
+git add project.md docs/plan/01-roadmap.md docs/tasks/README.md
 git commit -m "$(cat <<'EOF'
 docs(REC-XX): update aggregation files for completed task
 
@@ -393,9 +393,9 @@ In regular branch mode, do not append anything after the canonical summary.
 WARNING: Aggregation files not found
 
 Expected files:
-- docs/PROJECT.md [missing]
-- docs/ROADMAP.md [missing]
-- docs/DEPENDENCIES.md [found]
+- project.md [missing]
+- docs/plan/01-roadmap.md [missing]
+- docs/tasks/README.md [found]
 
 Options:
 1. [create] - Create missing files from templates
@@ -425,7 +425,7 @@ Your choice:
 ```
 WARNING: Aggregation files have conflicts
 
-docs/PROJECT.md has conflicts after git pull.
+project.md has conflicts after git pull.
 
 Options:
 1. [resolve] - Attempt auto-resolve
@@ -473,7 +473,7 @@ Your choice:
 WARNING: Main repo has uncommitted changes
 
 Changes in ../recol:
-- docs/PROJECT.md (modified)
+- project.md (modified)
 - src/main.rs (modified)
 
 Options:

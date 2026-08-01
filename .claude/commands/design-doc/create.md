@@ -66,7 +66,7 @@ mcp__linear-server__list_comments(issueId="REC-XX")
 
 ### Step 3: Read Architecture Document (if exists)
 
-**Check for architecture document**: `docs/arch` or `docs/architecture.md`
+**Check for architecture document**: `docs/ARCHITECTURE.md` or `docs/adr/`
 
 **If found, extract relevant context**:
 - Overall system architecture
@@ -258,7 +258,7 @@ Measurable test cases proving the implementation is correct. Add these BEFORE st
 After generating the template, **actively populate** these sections — do not leave them as placeholders:
 
 **Constraints**:
-- Check `docs/context/system-patterns.md` for invariants that apply (e.g., Cleanup must never lose text)
+- Check `docs/ARCHITECTURE.md` for invariants that apply (e.g., Cleanup must never lose text)
 - Check `CLAUDE.md` Escalation Triggers — any that apply here become Must/Must-not constraints
 - Add at least one Escalate-when trigger specific to this task
 
@@ -388,7 +388,7 @@ Next steps:
 
 ### Case 1: docs/designs/ folder doesn't exist
 
-- Create folder: `mkdir -p docs/design-docs`
+- Create folder: `mkdir -p docs/designs`
 
 ### Case 2: Design doc already exists
 

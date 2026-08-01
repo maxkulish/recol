@@ -1,6 +1,6 @@
 # /project:sync - Apply a task state change to the local tracker
 
-**Purpose**: Keep `docs/project.md` consistent with Linear when a task starts, finishes, or changes its blockers.
+**Purpose**: Keep `project.md` consistent with Linear when a task starts, finishes, or changes its blockers.
 
 **Usage**:
 - `/project:sync REC-XX --start`
@@ -13,9 +13,9 @@
 
 ## This repo has ONE aggregation file
 
-`docs/project.md`. There is no `PROJECT.md`, no `ROADMAP.md`, no `DEPENDENCIES.md` - do not create them, do not look for them, do not report them as missing. Earlier versions of this command assumed all three; every run had to work around their absence.
+`project.md`. There is no `PROJECT.md`, no `ROADMAP.md`, no `DEPENDENCIES.md` - do not create them, do not look for them, do not report them as missing. Earlier versions of this command assumed all three; every run had to work around their absence.
 
-`docs/project.md` is not a set of tables. It is:
+`project.md` is not a set of tables. It is:
 
 | Part | What it is |
 |---|---|
@@ -44,7 +44,7 @@ An epic is an ordinary Linear issue titled `EPIC E<n>: ...`, drawn as `✳️`, 
 
 ## Step 1: Read before writing
 
-1. Read `docs/project.md` in full. Never edit it from memory - other sessions change it.
+1. Read `project.md` in full. Never edit it from memory - other sessions change it.
 2. Fetch the issue with `mcp__linear-server__get_issue` for title, state and labels.
 3. Locate the task's node in the tree. Not found → stop and ask where it belongs rather than appending it somewhere plausible.
 
@@ -112,7 +112,7 @@ Report what changed and what it unblocked. Keep it short:
 ```
 REC-576 complete
 
-docs/project.md
+project.md
   REC-576  ⚪ -> ✅  (PR #91, done 07-28)
   REC-568  🔒 -> ⚪   unblocked
   REC-570  🔒 -> ⚪   unblocked
@@ -132,7 +132,7 @@ Next: REC-568 and REC-570 are both ready.
 | Case | Response |
 |---|---|
 | Issue not in Linear | Report the ID and stop. Do not create it. |
-| Node absent from `docs/project.md` | Ask where it belongs. Do not guess a parent. |
+| Node absent from `project.md` | Ask where it belongs. Do not guess a parent. |
 | Already in target state | Say so and make no edit. Idempotent. |
 | `--start` on an epic | Refuse; ask which child. |
 | File changed since read | Re-read and re-apply. Never overwrite from memory. |

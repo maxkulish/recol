@@ -8,7 +8,7 @@
 
 ## Status: pending or in_progress
 
-1. **Check if plan exists**: `docs/plans/rec-XX-*.md`
+1. **Check if plan exists**: `docs/plan/rec-XX-*.md`
 
 2. **If plan does NOT exist**:
    - Display: "Creating implementation plan from design document."
@@ -63,7 +63,7 @@ Run once before displaying the checkpoint, only if `advisor.enabled` is true and
    ```
    PLAN CHECKPOINT
 
-   Implementation plan: docs/plans/rec-XX-[description].md
+   Implementation plan: docs/plan/rec-XX-[description].md
    Total tasks: [X]
    Phases: [Y]
    Advisor (Checkpoint A): [proceed | revise | block]

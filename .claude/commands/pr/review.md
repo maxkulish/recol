@@ -653,7 +653,7 @@ git commit -m "$(cat <<'EOF'
 fix(REC-XX): address gemini-code-assist review feedback
 
 - src/audio/error.rs: Use tagged enum serialization
-- docs/design-docs: Fix documentation inconsistency
+- docs/designs: Fix documentation inconsistency
 - src/audio/capture.rs: Optimize memory allocation
 
 Resolves gemini-code-assist comments

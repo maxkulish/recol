@@ -32,7 +32,7 @@
 
 3. **Check for existing PRD or requirements document**:
    ```bash
-   ls docs/prds/rec-XX-*.md docs/designs/rec-XX-*.md 2>/dev/null
+   ls docs/designs/rec-XX-*.md docs/designs/rec-XX-*.md 2>/dev/null
    ```
    - If a PRD exists: Set `phases.discovery.prd_exists: true`, `phases.discovery.prd_file: <path>`
    - If no PRD exists: Proceed to Step 4

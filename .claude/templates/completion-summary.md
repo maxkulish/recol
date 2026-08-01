@@ -109,13 +109,13 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
    • {{lesson_2}}
 
 📂 Aggregation Files
-   {{project_md_icon}} docs/PROJECT.md
-   {{roadmap_md_icon}} docs/ROADMAP.md
-   {{dependencies_md_icon}} docs/DEPENDENCIES.md
+   {{project_md_icon}} project.md
+   {{roadmap_md_icon}} docs/plan/01-roadmap.md
+   {{dependencies_md_icon}} docs/tasks/README.md
 
 ───────────────────────────────────────────────────────────
  Phase: {{current_phase}} · Workflow: {{workflow_status}} · Status: {{final_status_icon}} {{final_status_word}}
- → Next: check docs/DEPENDENCIES.md for unblocked tasks.
+ → Next: check docs/tasks/README.md for unblocked tasks.
 ═══════════════════════════════════════════════════════════
 ```
 

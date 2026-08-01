@@ -1,6 +1,6 @@
 # /plan:implement - Implement Plans Step-by-Step with Progress Tracking
 
-**Purpose**: Execute implementation plans from `docs/plans/` by running tasks phase-by-phase, updating progress dynamically, and syncing status to Linear.
+**Purpose**: Execute implementation plans from `docs/plan/` by running tasks phase-by-phase, updating progress dynamically, and syncing status to Linear.
 
 **Usage**:
 - `/plan:implement [rec-XX]` - Implement specific task plan
@@ -40,9 +40,9 @@ When this command is invoked, follow these steps:
 
 **Plan File (REQUIRED)**:
 
-1. Search for plan file: `docs/plans/rec-XX-*.md`
+1. Search for plan file: `docs/plan/rec-XX-*.md`
 2. **If NOT found**:
-   - Display error: "Plan file not found matching: docs/plans/rec-XX-*.md"
+   - Display error: "Plan file not found matching: docs/plan/rec-XX-*.md"
    - Suggest: "Run `/plan:create rec-XX` first to generate the implementation plan"
    - Exit command
 3. **If found**: Extract full filename, continue
@@ -56,7 +56,7 @@ When this command is invoked, follow these steps:
 
 **Architecture Reference (ALWAYS READ IF EXISTS)**:
 
-1. Read `docs/arch` or `docs/architecture.md`
+1. Read `docs/ARCHITECTURE.md` or `docs/adr/`
 2. Use for architecture context, patterns, and validation
 
 **Status File (AUTO-CREATE & AUTO-UPDATE)**:
@@ -88,7 +88,7 @@ mkdir -p docs/status
 # REC-XX: [Task Title]
 
 **Linear Task**: https://linear.app/cloud-ai/issue/REC-XX
-**Plan File**: docs/plans/rec-XX-[description].md
+**Plan File**: docs/plan/rec-XX-[description].md
 **Design Document**: docs/designs/rec-XX-[description].md (or "N/A")
 **Started**: [Current Date/Time]
 **Last Updated**: [Current Date/Time]
@@ -446,7 +446,7 @@ feat(REC-XX): implement [concise description]
 - [Specific change 1]
 - [Specific change 2]
 
-Related: docs/plans/rec-XX-[description].md
+Related: docs/plan/rec-XX-[description].md
 ```
 
 **Execute commit**:
@@ -458,7 +458,7 @@ feat(REC-XX): implement [task]
 
 - [Details...]
 
-Related: docs/plans/rec-XX-[description].md
+Related: docs/plan/rec-XX-[description].md
 EOF
 )"
 ```
@@ -645,7 +645,7 @@ Completed: 20 (100%)
 Phases completed: 4/4
 
 Files updated:
-- Plan: docs/plans/rec-XX-[description].md (100%)
+- Plan: docs/plan/rec-XX-[description].md (100%)
 - Status: docs/status/rec-XX-[description].md (Final)
 
 Modules created/modified:
@@ -666,15 +666,15 @@ ACTION REQUIRED: Update Aggregation Files
 
 Update the following files to reflect task completion:
 
-1. docs/PROJECT.md
+1. project.md
    - Move REC-XX from "Active Work" to "Recently Completed"
    - Move next priority task to "Active Work"
 
-2. docs/ROADMAP.md
+2. docs/plan/01-roadmap.md
    - Update REC-XX status to "Done"
    - Update phase completion percentage
 
-3. docs/DEPENDENCIES.md
+3. docs/tasks/README.md
    - Remove REC-XX from "Current Blockers" (if listed)
    - Move newly unblocked tasks to "Unblocked & Ready"
    - Update dependency graph if needed
@@ -812,7 +812,7 @@ Next steps:
 **Commits**: [count]
 
 **Files**:
-- Plan: docs/plans/rec-XX-[description].md
+- Plan: docs/plan/rec-XX-[description].md
 - Status: docs/status/rec-XX-[description].md
 
 **Next Steps**: [Context-specific guidance]
@@ -834,7 +834,7 @@ Phases: A/B completed
 Commits: C
 
 Files updated:
-- Plan: docs/plans/rec-XX-[description].md
+- Plan: docs/plan/rec-XX-[description].md
 - Status: docs/status/rec-XX-[description].md
 
 Linear: Updated
@@ -854,7 +854,7 @@ Next:
 ```
 ERROR: Plan file not found
 
-Expected: docs/plans/rec-XX-*.md
+Expected: docs/plan/rec-XX-*.md
 
 Run: /plan:create rec-XX
 ```
@@ -942,8 +942,8 @@ When a task reaches 100% completion, remind the user to update these project-lev
 
 | File | Purpose | What to Update |
 |------|---------|----------------|
-| `docs/PROJECT.md` | Dashboard | Move task to "Recently Completed", update "Active Work" |
-| `docs/ROADMAP.md` | Big picture | Update task status, phase completion % |
-| `docs/DEPENDENCIES.md` | Blockers | Update blockers, mark unblocked tasks as ready |
+| `project.md` | Dashboard | Move task to "Recently Completed", update "Active Work" |
+| `docs/plan/01-roadmap.md` | Big picture | Update task status, phase completion % |
+| `docs/tasks/README.md` | Blockers | Update blockers, mark unblocked tasks as ready |
 
 These files provide high-level project visibility and should be kept in sync with task completion.

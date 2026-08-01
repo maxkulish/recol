@@ -134,7 +134,7 @@ Extract:
 
 ```bash
 # Find plan file
-ls docs/plans/rec-XX-*.md
+ls docs/plan/rec-XX-*.md
 ```
 
 Extract:
@@ -206,7 +206,7 @@ Examples:
 
 - **Linear**: https://linear.app/cloud-ai/issue/REC-XX
 - **Design Doc**: docs/designs/rec-XX-[description].md
-- **Plan**: docs/plans/rec-XX-[description].md
+- **Plan**: docs/plan/rec-XX-[description].md
 - **Status**: docs/status/rec-XX-[description].md
 ```
 
@@ -366,7 +366,7 @@ Or continue with orchestrator: /task:orchestrate REC-XX
 
 - **Linear Task**: https://linear.app/cloud-ai/issue/REC-XX
 - **Design Document**: `docs/designs/rec-XX-[description].md`
-- **Implementation Plan**: `docs/plans/rec-XX-[description].md`
+- **Implementation Plan**: `docs/plan/rec-XX-[description].md`
 - **Status Log**: `docs/status/rec-XX-[description].md`
 
 ## Checklist
