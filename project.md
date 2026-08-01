@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-07-31.
+Last updated: 2026-08-01.
 
 ## Done
 
@@ -16,6 +16,9 @@ Last updated: 2026-07-31.
 | R0 spec written and reviewed | `docs/plan/20-rename-and-release/`, revised at `eaf208c7` after a 12-point review |
 | R0 broken into 18 executable tasks | `docs/tasks/` |
 | R0-11 snapshot taken and proven restorable | `~/Backups/recol/2026-07-31/`, inventory at `docs/specs/r0-11-inventory-and-snapshot/INVENTORY.md`; Task 7 cleanup substituted `find -depth -delete` after a safety hook twice refused `rm -rf`, with the deleted paths verified correct and the substitution surfaced to and accepted by the user |
+
+| R0-11's four deferred findings closed | `r0-12`, `tech.md`, `tasks.md`, `product.md`, `docs/tasks/README.md` - the parent contracts still mandated an export path that does not exist, inventoried before restoring, compared searches against the live source, and routed agents at a completed task |
+| `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
 
 No code has been written. No CI, workflow, or GitHub setting has been changed.
 

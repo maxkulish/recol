@@ -220,7 +220,9 @@ Phases 0 through 2 are strictly sequential. After Phase 2 merges, Phase 3 and
 Phase 4 are independent: Phase 3 touches only the workstation, Phase 4 only the
 repository.
 
-R1 does not start until Phase 2 merges. It edits
-`src/observation_extract/`, which the rename rewrites. R1 step 2 additionally
-depends on extraction task id 1, which Phase 3 step 2 exports; do not run Phase
-3 without that export.
+R1 does not start until Phase 2 merges. It edits `src/observation_extract/`,
+which the rename rewrites. R1 step 2 additionally depends on extraction task
+id 1, which survives only inside R0-11's encrypted snapshot - there is no export
+subcommand, so R1 step 2 restores the snapshot into a scratch data directory and
+replays there. Do not run Phase 3's deletion step until that snapshot is proven
+restorable.

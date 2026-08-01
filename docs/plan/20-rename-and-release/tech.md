@@ -193,15 +193,39 @@ The database holds no curated state, but extraction task 1 is R1's replay target
 and is not reproducible. The cutover is staged so every step is reversible until
 the last.
 
-1. Inventory: record table row counts from the old installation as a baseline.
-2. Export the two artifacts that matter, extraction task 1 and `config.toml`, as
-   named files, so R1 does not have to unpack 198 MB to find one row.
-3. Snapshot: an encrypted archive of `~/.remem` to a rollback location.
+1. Cold checksum baseline of `~/.remem`, taken before anything else runs and
+   before any binary opens the store.
+2. Snapshot: an encrypted archive of `~/.remem` to a rollback location,
+   **carrying the SQLCipher key as a sibling file**. There is no `.key` in
+   `~/.remem`; `load_cipher_key()` at `src/db/crypto.rs:36` reads
+   `REMEM_CIPHER_KEY` then `<data_dir>/.key` and nothing else, and the key lives
+   only in Keychain service `remem-cipher-key`, which step 5 deletes. An archive
+   of the directory alone becomes unreadable ciphertext the moment that happens.
+   The archive passphrase goes in Keychain service `recol-snapshot-key`, which
+   step 5 does not touch.
+3. Inventory **from the restored copy**, not the original. Reading it from the
+   live installation would mutate it: `status` reaches `open_db()` at
+   `src/db/core.rs:127`, which runs migrations against a `journal_mode=WAL`
+   store, and any command appends to `remem.log`. Verify the restore by byte
+   equality against the step 1 baseline, which implies count equality where the
+   reverse does not.
 4. Install the renamed build and, under a fresh `RECOL_DATA_DIR`, re-ingest and
-   run representative searches, comparing against the inventory.
+   run representative searches, comparing against the restored copy rather than
+   the original for the same reason as step 3.
 5. Only then move `~/.remem` aside and update the Keychain and the `.zshrc`
    wrapper. Delete the old directory and the old Keychain entry after the new
    installation has been verified, not before.
+
+There is **no export subcommand for an extraction task**. The CLI has no dump
+path: `--replay-range-id` replays, it does not extract. An earlier draft of this
+plan gated Phase 3 on exporting extraction task 1 as a named file, which is not
+achievable. The encrypted snapshot is the artifact, and R1 step 2 works by
+restoring it into a scratch data directory and replaying there.
+
+If a non-mutating read is ever needed, `open_db_no_migrate()` at
+`src/db/core.rs:133` and the path at `:165-168` are documented as never
+creating, migrating, or repairing the store. Neither `status` nor `search` uses
+them today.
 
 ### Phase 4 - Release, staged then published
 

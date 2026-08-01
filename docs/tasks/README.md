@@ -45,7 +45,10 @@ R0, the rename and release contract. Spec: `docs/plan/20-rename-and-release/`.
 | 3 | 11-13 | Recoverable local cutover |
 | 4 | 14-18 | Release, staged then published |
 
-Four tasks have no blockers and can start immediately: **01, 03, 08, and 11**.
+**R0-11 is complete.** The snapshot exists at `~/Backups/recol/2026-07-31/`,
+proven to restore byte for byte and to open with no Keychain lookup. Do not
+rerun it: a second run would take a fresh baseline from a source that has since
+been read, and would overwrite a verified artifact with an unverified one. If
+you need the old installation, restore it - `RESTORE.md` is in that directory.
 
-Start with **R0-11**. It is the only task that protects against every other task
-going wrong, and it touches nothing the others need.
+Start with any of **01, 03, or 08** - all unblocked, none depends on R0-11.

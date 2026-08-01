@@ -34,10 +34,15 @@ to classify the extraction failure as configuration or structural. Re-ingesting
 transcripts does not recreate it. The second is `config.toml`, which records the
 host, model, and reasoning selection.
 
-So the cutover is recoverable rather than destructive: snapshot, export the two
-artifacts that matter, verify the new installation answers representative
-searches, move the old directory to a rollback location, and delete only after
-that.
+Neither can be exported. The CLI has no dump path for an extraction task -
+`--replay-range-id` replays, it does not extract - so the encrypted snapshot is
+the only artifact, and R1 step 2 restores it into a scratch data directory to
+reach task 1.
+
+So the cutover is recoverable rather than destructive: checksum baseline,
+encrypted snapshot carrying its own key, inventory taken from the restored copy
+rather than the original, verify the new installation answers representative
+searches, and delete only after that.
 
 There are no other installations to keep compatible. No published package
 carries the project's name, no downstream consumer imports it, and nothing in
@@ -139,9 +144,10 @@ Three things an earlier draft wrongly listed as frozen are renamed:
   downloads, verifies, installs, and starts the published runtime.
 - Every release archive contains the binary and `LICENSE`. `brew audit` and
   `brew test` pass against the published formula.
-- The old installation is in a rollback location with extraction task 1 and
-  `config.toml` exported, and the new installation answers representative
-  searches before anything is deleted.
+- The old installation is preserved in an encrypted snapshot that carries its
+  own SQLCipher key, proven to restore byte for byte and to open with no
+  Keychain lookup, and the new installation answers representative searches
+  before anything is deleted.
 
 ## Explicitly out of scope
 
