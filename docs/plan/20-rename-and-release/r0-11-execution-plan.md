@@ -760,12 +760,16 @@ carries project names.
 
 ### Task 7: Final verification, cleanup, and board update
 
-The restored copy holds a plaintext `.key` beside a decryptable 199 MB database.
-It goes. The final sweep of `~/.remem` covers the whole plan, not just the
-archive step, so it catches any command that touched the directory by accident.
+The restored copy holds a plaintext `.key` beside a decryptable 199 MB
+database, and the `KEY_DIR` staging directory from Task 3 holds the same key
+on its own. Both go. The final sweep of `~/.remem` covers the whole plan, not
+just the archive step, so it catches any command that touched the directory
+by accident.
 
 **Files:**
 - Delete: `~/Backups/recol/2026-07-31/restore-test/`
+- Delete: `${TMPDIR:-/tmp}/recol-r0-11-key-staging` (the `KEY_DIR` staging
+  directory created in Task 3)
 - Modify: `project.md` (R0-11 row and the Done table)
 
 **Interfaces:**
@@ -797,24 +801,32 @@ This one is informational. A difference here with identical checksums means
 something opened a file without changing its contents - worth reporting, not a
 failure.
 
-- [ ] **Step 3: Remove the restored copy**
+- [ ] **Step 3: Remove the restored copy and the key staging directory**
 
 ```bash
-rm -rf ~/Backups/recol/2026-07-31/restore-test
+KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
+rm -rf "$KEY_DIR" ~/Backups/recol/2026-07-31/restore-test
 ls ~/Backups/recol/2026-07-31
 ```
 
-This recursive delete may be refused by a local safety hook that flags it as
-targeting a critical path. If that happens, stop and report BLOCKED; have a
+These recursive deletes may be refused by a local safety hook that flags them
+as targeting a critical path. If that happens, stop and report BLOCKED; have a
 human run the deletion or explicitly approve a substitute command. Do not work
 around the block by reaching the same end state through a different command
 (for example `find -delete`) - the hook exists so an agent does not get to
 rule the block a false positive and improvise past it on backup and key
 material. This was observed on the 2026-07-31 run.
 
+Both targets go because each holds a plaintext copy of the SQLCipher key: the
+restored copy's `.remem/.key` sits beside a decryptable ~199 MB database, and
+`$KEY_DIR/remem-cipher-key.txt` is the same key on its own, with nothing
+beside it to decrypt. Removing only one still leaves a readable key on disk.
+
 Expected: `RESTORE.md`, `DO-NOT-DELETE.md`, `baseline.files`, `baseline.sha256`,
 `baseline.stat`, `doctor.json`, `inventory.json`, `remem-snapshot.tar.gpg`,
 `remem-snapshot.tar.gpg.sha256`, `snapshot.tar.sha256`. No `restore-test`.
+`$KEY_DIR` is gone too, but it lives under `$TMPDIR`, outside
+`~/Backups/recol/2026-07-31`, so its removal will not show in this listing.
 
 - [ ] **Step 4: Confirm the way back into the archive still exists**
 
