@@ -2,7 +2,7 @@
 
 **Status**: Draft
 **Date**: 2026-05-25
-**Related**: `docs/spec-context-compiler.md`, `docs/sessionstart-context-smoke.md`
+**Related**: `docs/spec-context-compiler.md`, `docs/qa/sessionstart-context-smoke.md`
 
 ## 1. Background
 
@@ -446,7 +446,7 @@ Do not add shell redirection in the installed hook. Suppression belongs in remem
 
 ### Step 6: Smoke docs
 
-Update `docs/sessionstart-context-smoke.md` with:
+Update `docs/qa/sessionstart-context-smoke.md` with:
 
 ```bash
 printf '{"session_id":"sess-1","cwd":"%s","transcript_path":"/tmp/codex.jsonl"}' "$PWD" \

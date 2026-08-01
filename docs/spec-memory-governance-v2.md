@@ -8,7 +8,7 @@ Related:
 - `docs/memory-lifecycle.md`
 - `docs/spec-autodream.md`
 - `docs/ref/memory-retrieval-research-2026-05-24.md`
-- `docs/audit-2026-05-29.md`
+- `docs/audit/audit-2026-05-29.md`
 - Tracking issue: <https://github.com/majiayu000/remem/issues/274>
 
 ## Problem

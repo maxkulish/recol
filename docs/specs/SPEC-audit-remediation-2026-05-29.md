@@ -1,6 +1,6 @@
 # Spec: Audit Remediation (2026-05-29)
 
-> Companion to `docs/audit-2026-05-29.md`. Covers the 5 Critical + 7 High findings.
+> Companion to `docs/audit/audit-2026-05-29.md`. Covers the 5 Critical + 7 High findings.
 > Guiding principle (CLAUDE.md): every decision is judged by **memory quality**. Several findings are live recurrences of the two recorded disasters — capture channel producing nothing, and memories that look empty — so they take priority over cost/latency.
 
 ## 1. Background
