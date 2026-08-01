@@ -283,10 +283,13 @@ mid-stream leaves a recoverable secret rather than an unopenable file.
   the key file is a sibling of `.remem/`, never inside it, so the archived
   directory stays byte-identical to the original.
 
-**Steps 1 through 4 must run in one shell invocation.** `$PASS_FILE` and
-`$KEY_DIR` are `mktemp` paths and do not survive a new shell. Concatenate the
-four blocks into a single command, checking the expected output of each before
-moving on. Step 5 is independent and may run separately.
+**Steps 1 through 4 must run in one shell invocation.** `$PASS_FILE` is a
+`mktemp` path and does not survive a new shell. `$KEY_DIR` is now a fixed
+path rather than a `mktemp` one, but Steps 2 and 3 still read it as a live
+shell variable, so all four blocks still need to run as one command.
+Concatenate the four blocks into a single command, checking the expected
+output of each before moving on. Step 5 is independent and may run
+separately.
 
 - [ ] **Step 1: Mint the archive passphrase and store it in Keychain first**
 
@@ -305,7 +308,8 @@ exists only in a temp file.
 - [ ] **Step 2: Extract the SQLCipher key into a staging directory**
 
 ```bash
-KEY_DIR=$(mktemp -d); chmod 700 "$KEY_DIR"
+KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
+mkdir -p "$KEY_DIR"; chmod 700 "$KEY_DIR"
 security find-generic-password -s remem-cipher-key -w > "$KEY_DIR/remem-cipher-key.txt"
 chmod 600 "$KEY_DIR/remem-cipher-key.txt"
 wc -c "$KEY_DIR/remem-cipher-key.txt"
