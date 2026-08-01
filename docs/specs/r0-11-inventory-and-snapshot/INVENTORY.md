@@ -27,6 +27,8 @@ Applied migration version and SQLite `user_version`, from
 
 Schema [ok] migrations v73 (sqlite user_version 85, logical user_version 85, up to date)
 
+JSON path: `.checks[] | select(.name == "Schema").detail`
+
 ## Snapshot
 
 | | |

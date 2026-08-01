@@ -344,9 +344,16 @@ discarded the only path back into the archive.
 suppress pinentry. If a prompt appears, add `--pinentry-mode loopback`. Do not
 work around it by typing the passphrase, which leaves it in shell history.
 
-**A file changes between S1 and S3.** Something is running. Stop it, delete the
-archive, and restart from S0. A snapshot taken across a concurrent write is not
-worth keeping, and the checksum mismatch is the only signal that it happened.
+**A file changes between S1 and S3.** Something is running. Stop it. Do not
+restart from S0: that would regenerate `baseline.files`, `baseline.sha256`,
+and `baseline.stat` against the already-mutated source, and every later check
+would then pass against a baseline that no longer reflects the original state.
+The task fails here. It may only be restarted after the source has been
+explicitly recovered, or the mutation has been understood and accepted by a
+human. If a rerun is later authorised, preserve the existing baseline files
+under a distinct name first, so the original state is still available for
+comparison. A snapshot taken across a concurrent write is not worth keeping,
+and the checksum mismatch is the only signal that it happened.
 
 **`shasum -c` reports a missing file in S4.** The extraction root is wrong, or
 the tar was created without `-C ~`. Both produce the same symptom.

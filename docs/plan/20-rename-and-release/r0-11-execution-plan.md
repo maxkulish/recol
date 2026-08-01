@@ -363,8 +363,15 @@ find .remem -type f | sort | diff - ~/Backups/recol/2026-07-31/baseline.files
 Expected: every line reports OK, and the `diff` produces no output.
 
 A mismatch here means something wrote to `~/.remem` while `tar` was reading it.
-Delete the archive, find the writer, and restart from Task 2. A snapshot taken
-across a concurrent write is not worth keeping.
+Do not restart from Task 2: that would regenerate `baseline.files`,
+`baseline.sha256`, and `baseline.stat` against the already-mutated source, and
+every later check would then pass against a baseline that no longer reflects
+the original state. The task fails here. It may only be restarted after the
+source has been explicitly recovered, or the mutation has been understood and
+accepted by a human. If a rerun is later authorised, preserve the existing
+baseline files under a distinct name first, so the original state is still
+available for comparison. A snapshot taken across a concurrent write is not
+worth keeping.
 
 - [ ] **Step 6: Record the result**
 
@@ -650,19 +657,29 @@ The passphrase is in the login Keychain under service `recol-snapshot-key`.
 That entry is deliberately separate from `remem-cipher-key`, which R0-13 deletes.
 
 ```bash
-DEST=/tmp/remem-restore            # any empty directory
+DEST=/tmp/remem-restore            # must be empty or not exist
 PASS_FILE=$(mktemp); chmod 600 "$PASS_FILE"
 security find-generic-password -s recol-snapshot-key -w > "$PASS_FILE"
 
+if [ -e "$DEST" ] && [ -n "$(ls -A "$DEST" 2>/dev/null)" ]; then
+  echo "refusing: $DEST exists and is not empty" >&2
+  rm -f "$PASS_FILE"
+  exit 1
+fi
 mkdir -p "$DEST"
 gpg --batch --decrypt --passphrase-file "$PASS_FILE" \
     /Users/mk/Backups/recol/2026-07-31/remem-snapshot.tar.gpg \
   | tar -xf - -C "$DEST"
+print -r -- "pipe status: $pipestatus"
 rm -f "$PASS_FILE"
 
 cp "$DEST/remem-cipher-key.txt" "$DEST/.remem/.key"
 chmod 600 "$DEST/.remem/.key"
 ```
+
+Expected: `pipe status: 0 0`. A non-zero entry means the archive did not
+decrypt or extract; stop there and do not copy the key or trust anything
+downstream.
 
 The key must be copied into `.remem/.key` because `load_cipher_key()` reads
 `REMEM_CIPHER_KEY` first, then `<data_dir>/.key`, and nothing else - the
@@ -880,9 +897,18 @@ if the final sweep fails, that is a bug in the plan, not a state to recover from
 To abandon the plan partway:
 
 ```bash
-rm -rf ~/Backups/recol/2026-07-31
+KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
+rm -rf ~/Backups/recol/2026-07-31 "$KEY_DIR"
 security delete-generic-password -s recol-snapshot-key
 ```
+
+These recursive deletes may be refused by a local safety hook that flags them
+as targeting a critical path. If that happens, stop and report BLOCKED; have a
+human run the deletion or explicitly approve a substitute command. Do not work
+around the block by reaching the same end state through a different command
+(for example `find -delete`) - the hook exists so an agent does not get to
+rule the block a false positive and improvise past it on backup and key
+material. This was observed on the 2026-07-31 run.
 
 Do not run that once R0-13 has deleted `remem-cipher-key`. At that point the
 archive is the only copy of the key, and the Keychain entry is the only way into
