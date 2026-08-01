@@ -805,7 +805,8 @@ failure.
 
 ```bash
 KEY_DIR="${TMPDIR:-/tmp}/recol-r0-11-key-staging"
-rm -rf "$KEY_DIR" ~/Backups/recol/2026-07-31/restore-test
+RESTORE=~/Backups/recol/2026-07-31/restore-test
+rm -rf "$KEY_DIR" "$RESTORE"
 ls ~/Backups/recol/2026-07-31
 ```
 
@@ -817,8 +818,8 @@ around the block by reaching the same end state through a different command
 rule the block a false positive and improvise past it on backup and key
 material. This was observed on the 2026-07-31 run.
 
-Both targets go because each holds a plaintext copy of the SQLCipher key: the
-restored copy's `.remem/.key` sits beside a decryptable ~199 MB database, and
+Both targets go because each holds a plaintext copy of the SQLCipher key:
+`$RESTORE/.remem/.key` sits beside a decryptable ~199 MB database, and
 `$KEY_DIR/remem-cipher-key.txt` is the same key on its own, with nothing
 beside it to decrypt. Removing only one still leaves a readable key on disk.
 
