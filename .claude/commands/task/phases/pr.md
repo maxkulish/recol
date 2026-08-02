@@ -90,7 +90,9 @@ gh run list --branch [branch-name] --limit 1
    - Update `phases.pr.reviews_addressed`
    - Push changes
    - Add history entry: `review_addressed`
-4. **CRITICAL - gemini-code-assist replies**: When replying to inline comments from `gemini-code-assist`, every reply MUST end with `/gemini review` on its own line. This triggers Gemini to re-validate the fix. This applies whether you invoke `/pr:review` or handle reviews inline.
+4. **CRITICAL - AI reviewer reply format**: Two reviewers ignore replies that do not match their expected shape. This applies whether you invoke `/pr:review` or handle reviews inline.
+   - `gemini-code-assist`: every reply MUST end with `/gemini review` on its own line, which triggers re-validation of the fix.
+   - Qodo (`qodo-ai[bot]` or another `*qodo*` login): every reply MUST start with `@qodo`. Qodo also reports most findings in a single persistent PR-level comment rather than inline, so fetch `issues/[number]/comments` as well or low-severity findings are missed.
 
 ---
 

@@ -37,7 +37,12 @@ No comment may be left without a response - whether the fix was applied, decline
 | Question answered | "[explanation]. [reference to design doc if relevant]" |
 | Deferred | "Tracked as follow-up in [task/issue]. [reason for deferral]" |
 
-For `gemini-code-assist` comments, every reply MUST end with `/gemini review` on its own line to trigger re-validation.
+Two reviewers need a specific reply shape or they ignore the reply:
+
+| Reviewer | Requirement |
+|----------|-------------|
+| `gemini-code-assist` | Reply MUST end with `/gemini review` on its own line |
+| Qodo (`*qodo*[bot]`) | Reply MUST start with `@qodo` - Qodo only acts on messages that address it, including follow-ups in a thread it already replied to |
 
 ---
 
@@ -103,6 +108,25 @@ gh pr view [number] --json comments --jq '.comments[] | {id, body, author: .auth
 ```
 
 **Note**: The `commit_id` and `original_line` fields are used for stale comment detection in Step 4.5.
+
+**Do not stop at inline comments.** Qodo reports most findings inside a single PR-level comment that it rewrites on every push, and inline comments only for findings above the configured severity threshold. Fetching only `/pulls/[number]/comments` silently drops everything below that threshold. Always fetch the PR-level comments as well:
+
+```bash
+gh api repos/{owner}/{repo}/issues/[number]/comments --paginate \
+  --jq '.[] | {id, user: .user.login, updated_at, body}'
+```
+
+**Match bot reviewers by pattern, not by fixed login.** The Qodo app has shipped under several identities: `qodo-ai[bot]` on current installs, `qodo-merge-pro[bot]` and `codiumai-pr-agent-pro[bot]` on older ones. Resolve the login once for display:
+
+```bash
+QODO_BOT=$( { gh api repos/{owner}/{repo}/pulls/[number]/comments --paginate --jq '.[].user.login';
+              gh api repos/{owner}/{repo}/issues/[number]/comments --paginate --jq '.[].user.login';
+            } | grep -i qodo | sort -u | head -1 )
+```
+
+If `QODO_BOT` is empty, Qodo has not commented on this PR yet - do not fabricate its findings. Note that a self-hosted PR-Agent posts under the workflow token as `github-actions[bot]` and will not match this pattern.
+
+`gh api` has no `--arg` flag, so filters below match the login by regex rather than substituting `$QODO_BOT` into jq.
 
 ### Step 4: Categorize Feedback
 
@@ -273,8 +297,10 @@ gh api repos/{owner}/{repo}/pulls/[number]/comments/[comment_id]/replies \
 2. Reference the commit SHA that contains the fix
 3. If declining a suggestion, explain why (reference design docs, ADRs, or project constraints)
 4. For `gemini-code-assist` comments: every reply MUST end with `/gemini review` on its own line
-5. For `copilot-pull-request-reviewer` comments: reply with fix details (no special trigger needed)
-6. Track reply count - the final summary must show `Replies Posted: N/N`
+5. For Qodo comments: every reply MUST start with `@qodo`
+6. For `copilot-pull-request-reviewer` comments: reply with fix details (no special trigger needed)
+7. Qodo findings that appear only in the persistent summary comment have no thread to reply into. Answer them in one PR-level comment (Step 9b), not by inventing comment IDs
+8. Track reply count - the final summary must show `Replies Posted: N/N`
 
 **Reply templates by reviewer type**:
 
@@ -284,8 +310,28 @@ gh api repos/{owner}/{repo}/pulls/[number]/comments/[comment_id]/replies \
 | Human | Declined | "Intentionally kept as-is: [rationale]. Happy to discuss." |
 | `gemini-code-assist` | Fixed | "Fixed in abc1234. [details]\n\n/gemini review" |
 | `gemini-code-assist` | Declined | "Kept as-is: [reason]\n\n/gemini review" |
+| Qodo | Fixed | "@qodo Fixed in abc1234. [details]" |
+| Qodo | Declined | "@qodo Intentional: [rationale]. Please dismiss this finding." |
 | `copilot-pull-request-reviewer` | Fixed | "Fixed in abc1234. [details]" |
 | `copilot-pull-request-reviewer` | Declined | "Intentionally kept as-is: [rationale]" |
+
+### Step 9b: Answer Summary-Only Qodo Findings
+
+Findings below `inline_comments_severity_threshold` exist only inside Qodo's persistent comment. Post one PR-level comment covering all of them:
+
+```bash
+gh pr comment [number] --body "$(cat <<'EOF'
+@qodo Addressed the findings from the latest review in abc1234.
+
+- Requirement gap on retention classification: fixed, the classifier now fails closed.
+- Informational finding on naming: kept as-is, the name matches the existing `SearchWeights` convention.
+
+Please re-check.
+EOF
+)"
+```
+
+Qodo re-reviews on push when `handle_push_trigger` is enabled (see `.pr_agent.toml` at the repo root), so this comment is for the audit trail and for dismissals - it is not what triggers re-validation.
 
 **Batch replies** (for multiple comments):
 
@@ -304,7 +350,10 @@ for item in "${COMMENTS[@]}"; do
 done
 ```
 
-For `gemini-code-assist` comments, append `/gemini review` to each reply body.
+Per-reviewer adjustments to the loop above:
+
+- `gemini-code-assist`: append `/gemini review` to each reply body
+- Qodo: prepend `@qodo ` to each reply body
 
 ### Step 10: Update Workflow State (if exists)
 
@@ -395,8 +444,11 @@ Pushed: Yes
 Replies Posted: [N/N] (MUST be N/N - all comments replied to)
 - Comment [id]: [fixed/declined/answered] (@reviewer)
 - Comment [id]: [fixed/declined/answered] (@gemini-code-assist, with /gemini review)
+- Comment [id]: [fixed/declined/answered] (@qodo-ai[bot], reply starts with @qodo)
 - Comment [id]: [fixed/declined/answered] (@copilot-pull-request-reviewer)
 - ...
+
+Qodo summary-only findings: [count] answered in PR comment [id]
 
 Stale Comments: [count skipped with user approval]
 
@@ -781,6 +833,156 @@ Next steps:
 1. Wait for gemini re-review (~1-2 minutes)
 2. Check for new comments: /pr:review REC-XX
 3. After approval: merge or continue workflow
+```
+
+---
+
+## AI Code Review: Qodo
+
+Qodo behaves differently from the other two reviewers in three ways that break the default workflow if ignored:
+
+1. **Findings live in one persistent comment.** Qodo rewrites a single PR-level comment on every push rather than posting a new one. Inline comments are published only for findings at or above `inline_comments_severity_threshold`.
+2. **Replies must address Qodo explicitly.** A reply that does not start with `@qodo` is not read, even inside a thread Qodo itself opened.
+3. **Resolution is inferred from the code, not from the reply.** Pushing a fix makes Qodo strike through the finding on its next run. The reply is for dismissals and for the audit trail.
+
+Repository configuration lives in `.pr_agent.toml` at the root of the default branch. It only applies to PRs opened after that file lands on the default branch.
+
+### Fetching Qodo Findings
+
+```bash
+# Inline findings (each has a thread, each needs a reply)
+gh api repos/{owner}/{repo}/pulls/[number]/comments --paginate \
+  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, path, line, body}'
+
+# The persistent summary comment (holds every finding, including those with no thread)
+gh api repos/{owner}/{repo}/issues/[number]/comments --paginate \
+  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, updated_at, body}'
+```
+
+The summary comment is long and mostly collapsed HTML. Read it for the finding list; do not paste it back to the user verbatim.
+
+### Reading the Summary Comment
+
+Qodo groups findings by priority, then labels each with a quality dimension.
+
+| Priority group | Severity | Maps to | Action |
+|----------------|----------|---------|--------|
+| Action Required | 3 | Blocking | Must fix before merge |
+| Review Recommended | 2 | Should fix | Fix or decline with rationale |
+| Informational | 1 | Optional | Acknowledge, fix if cheap |
+
+Finding categories: **Bugs**, **Rule violations** (from AGENTS.md / CLAUDE.md, which Qodo imports as rules), **Requirement gaps** (from the linked ticket), **Cross-repo conflicts**, **Skill insights**.
+
+Quality labels attached to a finding: `Correctness`, `Security`, `Reliability`, `Performance`, `Observability`.
+
+Two markers matter when re-reading after a push:
+
+- **⭐️ New** - raised by the latest run, not present before. Address these.
+- **Struck through** - Qodo considers it resolved by your changes. Do not re-fix, do not reply.
+
+A **Previous review results** section holds earlier runs. Ignore it unless auditing history - findings there are superseded by the current list.
+
+### Rule Violations Are Not Style Nits
+
+A `Rule violation` finding means the diff contradicts a rule Qodo imported from this repo's own `AGENTS.md` or `CLAUDE.md`. Treat it as blocking regardless of the priority group Qodo assigned, or fix the rule file if the rule is genuinely wrong. Do not decline it as a matter of taste.
+
+### Workflow for Qodo Feedback
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Qodo Review Cycle                           │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Confirm Qodo has commented (QODO_BOT non-empty)             │
+│  2. Fetch inline comments AND the persistent summary comment    │
+│  3. Drop struck-through findings (already resolved)             │
+│  4. Order: Action Required -> Review Recommended -> Info        │
+│  5. Fix, commit, push                                           │
+│  6. Qodo auto re-reviews on push (handle_push_trigger = true)   │
+│  7. Reply "@qodo ..." to each inline thread                     │
+│  8. Post one "@qodo ..." PR comment for summary-only findings   │
+│  9. Re-read the updated summary comment for ⭐️ New findings     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Asking Qodo to Fix or Dismiss
+
+Qodo accepts natural language once addressed. Both forms are useful during review:
+
+```bash
+# Dismiss a finding you are declining, in its own thread
+gh api repos/{owner}/{repo}/pulls/[number]/comments/[comment_id]/replies \
+  -X POST -f body="@qodo Intentional: the allocation is per-request and bounded by MAX_BATCH. Please dismiss this finding."
+
+# Ask a question about a finding you do not understand
+gh pr comment [number] --body "@qodo Which rule does finding 3 come from, and where is it defined?"
+```
+
+Asking Qodo to fix something (`@qodo fix the null pointer issue`) makes it open a **separate PR** with proposed changes rather than committing to the current branch. Do not use it inside this workflow - it fragments the change across two PRs. Fix the code directly instead.
+
+### Manual Re-review Trigger
+
+With `handle_push_trigger = true` no trigger comment is needed. If push-triggered review is off, or a re-review is needed without a new commit:
+
+```bash
+gh pr comment [number] --body "/agentic_review"
+```
+
+Qodo acknowledges with a 👀 reaction. Other supported commands: `/agentic_describe`, `/ask`, `/config` (prints the effective configuration, useful for debugging why a finding did or did not appear), `/generate_labels`, `/checks`.
+
+Note that `/review` and `/improve` are legacy Qodo Merge v1 commands. On a current install they do nothing.
+
+### Reviewer Comparison
+
+| Aspect | Qodo | gemini-code-assist | copilot-pull-request-reviewer |
+|--------|------|--------------------|-------------------------------|
+| Severity | Priority groups (Action Required / Review Recommended / Informational) | `**Severity**: high/medium/low` | None - treat as medium |
+| Where findings live | One persistent PR comment + inline above threshold | Inline only | Inline only |
+| Re-validation trigger | Automatic on push, or `/agentic_review` | `/gemini review` in reply | Automatic on push |
+| Reply requirement | Must start with `@qodo` | Must end with `/gemini review` | None |
+| Resolution marker | Strikethrough on next run | Thread resolution | Thread resolution |
+| Repo config | `.pr_agent.toml` on default branch | `.gemini/config.yaml` | Repo settings |
+
+### Qodo Summary Display
+
+```
+========================================
+QODO REVIEW: REC-XX
+========================================
+
+PR #[number]: [title]
+Reviewer: qodo-ai[bot]
+Summary comment last updated: [timestamp]
+
+Findings: 5 open (2 struck through as resolved)
+
+ACTION REQUIRED:
+1. [inline #2707454116] src/audio/error.rs:50  [Correctness]
+   "AudioError variants serialize untagged, callers cannot discriminate"
+   Status: Needs fix
+
+2. [summary-only] Rule violation - AGENTS.md Core Rules  [Reliability]
+   "drain_to_storage returns Ok(()) when the write fails"
+   Status: Needs fix
+
+REVIEW RECOMMENDED:
+3. [inline #2707454129] src/audio/capture.rs:132  [Performance]
+   "drain_to_storage allocates a Vec on each call"
+   Status: Needs fix
+
+INFORMATIONAL:
+4. [summary-only] docs/designs/rec-47-audio-capture.md:142
+   "Doc says FftFixedIn, code uses SincFixedIn"
+   Status: Needs fix
+
+---
+
+Options:
+1. [address-all] - Fix all findings
+2. [address-required] - Action Required only
+3. [details N] - Show full finding N
+4. [skip] - Skip for now
+
+Your choice:
 ```
 
 ---
