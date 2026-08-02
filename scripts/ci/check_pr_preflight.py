@@ -65,56 +65,8 @@ def run_expected_failure(
     return StepResult(name, "PASS")
 
 
-def read_pr_body(args: argparse.Namespace) -> tuple[str | None, str | None]:
-    if args.pr_body_file:
-        try:
-            return Path(args.pr_body_file).read_text(encoding="utf-8"), None
-        except OSError as exc:
-            return None, f"cannot read PR body file {args.pr_body_file}: {exc}"
-    body = os.environ.get("GITHUB_PR_BODY")
-    if body:
-        return body, None
-    if args.skip_pr_body_checks:
-        return None, None
-    return None, "missing PR body; pass --pr-body-file or set GITHUB_PR_BODY"
-
-
-def add_pr_body_steps(
-    results: list[StepResult],
-    args: argparse.Namespace,
-    base: str,
-    head: str,
-) -> None:
-    body, error = read_pr_body(args)
-    if error:
-        results.append(StepResult("Check spec lifecycle", "FAIL", error))
-        return
-    if body is None:
-        results.append(StepResult("Check spec lifecycle", "SKIP", "--skip-pr-body-checks"))
-        return
-    env = {
-        "GITHUB_PR_BODY": body,
-        "GITHUB_PR_TITLE": args.pr_title or os.environ.get("GITHUB_PR_TITLE", ""),
-    }
-    results.append(
-        run(
-            "Check spec lifecycle",
-            ["python3", "scripts/ci/check_spec_lifecycle.py", base, head],
-            env=env,
-        )
-    )
-
-
 def fast_steps(base: str, head: str) -> list[tuple[str, list[str]]]:
     return [
-        (
-            "Test SpecRail gate wiring",
-            ["python3", "scripts/ci/test_specrail_gate_wiring.py"],
-        ),
-        (
-            "Verify synced SpecRail checks",
-            ["scripts/sync-specrail-checks.sh", "--verify"],
-        ),
         ("Check plugin version sync", ["python3", "scripts/ci/check_plugin_version_sync.py"]),
         ("Check public surface", ["python3", "scripts/ci/check_public_surface.py"]),
         ("Check public benchmark claims", ["python3", "scripts/ci/check_public_claims.py"]),
@@ -163,12 +115,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--base", default="origin/main", help="Base ref for PR diff checks")
     parser.add_argument("--head", default="HEAD", help="Head ref for PR diff checks")
-    parser.add_argument("--pr-body-file", help="File containing the intended PR body")
-    parser.add_argument("--pr-title", help="Optional PR title for lifecycle checks")
+    parser.add_argument(
+        "--pr-body-file",
+        help="Accepted for compatibility; no longer used",
+    )
+    parser.add_argument(
+        "--pr-title",
+        help="Accepted for compatibility; no longer used",
+    )
     parser.add_argument(
         "--skip-pr-body-checks",
         action="store_true",
-        help="Skip PR-body-dependent checks when no PR body exists yet",
+        help="Accepted for compatibility; no longer used",
     )
     parser.add_argument(
         "--fast",
@@ -199,8 +157,6 @@ def main() -> int:
 
     for name, command in fast_steps(args.base, args.head):
         results.append(run(name, command))
-
-    add_pr_body_steps(results, args, args.base, args.head)
 
     if not args.fast:
         for name, command in full_steps():

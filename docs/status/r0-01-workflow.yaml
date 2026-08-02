@@ -1,0 +1,124 @@
+# Workflow state for R0-01. Machine-written by /task:orchestrate.
+#
+# Naming note: docs/status/README.md documents `rec-<issue-number>-workflow.yaml`
+# for Linear-tracked issues. R0 tasks are tracked in docs/tasks/ and project.md,
+# not Linear, so this file follows the docs/tasks/ id form instead.
+
+task_id: R0-01
+linear_url: null
+title: "Narrow the PR preflight to surviving checks"
+task_file: docs/tasks/r0-01-narrow-pr-preflight.md
+branch: refactor/01
+task_type: specification
+created: "2026-08-02T13:49:36Z"
+
+workflow:
+  current_phase: implement
+  status: in_progress
+
+phases:
+  discovery:
+    status: skipped
+    skip_reason: "Specification task; docs/tasks/r0-01 already records verified code reality with file and line references"
+    approved: true
+
+  design:
+    status: skipped
+    reason: "Specification task - the task file is the spec"
+
+  plan:
+    status: skipped
+    reason: "Specification task - spec decomposition IS the plan"
+
+  spec:
+    status: complete
+    spec_file: docs/tasks/r0-01-narrow-pr-preflight.md
+    spec_authored: false
+    spec_skip_reason: "docs/tasks/r0-01 is already a 5-section-equivalent spec (Goal, Context with verified line refs, Scope, runnable Acceptance criteria) and was reviewed as part of the R0 spec at eaf208c7. Re-deriving it via /spec would duplicate a committed artifact."
+    approved: true
+    main_sha_at_approval: "6379535255d21579a08d4421fb1c3d4980697cde"
+    review_gemini: null
+    review_ollama: null
+    review_verdict: null
+    review_completed: false
+    review_unavailable_reason: "No .lok/ directory in this repo, so .lok/workflows/spec-review.toml does not exist. Dual-model spec review could not run."
+    review_applied: false
+    applied_suggestions: []
+    flagged_suggestions: []
+    # Findings from reading the real script, which the task file's Context does not capture
+    verified_findings:
+      - "Task file says the three doomed entries are in the (name, command) list. Only two are: test_specrail_gate_wiring.py and sync-specrail-checks.sh --verify, both in fast_steps(). check_spec_lifecycle.py is invoked from add_pr_body_steps() at line 99-105, reached via main() line 203."
+      - "Removing the spec-lifecycle check strands read_pr_body() and add_pr_body_steps() plus argparse flags --pr-body-file, --pr-title, --skip-pr-body-checks."
+      - "The flags cannot simply be dropped: acceptance criterion 1 of R0-01 AND acceptance criterion 4 of R0-02 both invoke the script with --pr-body-file, as does AGENTS.md:89. Dropping it makes argparse exit 2."
+      - "check_version_bump.py reads no environment at all; GITHUB_PR_BODY/GITHUB_PR_TITLE are consumed only by check_spec_lifecycle.py. AGENTS.md:94's claim that the body feeds version bump checks is already inaccurate before this task."
+      - "rg -c on the six retained scripts currently returns 6 (lines 118-122, 134) and is unaffected by the removals."
+
+  implement:
+    status: in_progress
+    current_step: 4
+    total_steps: 4
+    commits: []
+    last_phase_completed: "edits applied; acceptance criteria verifying"
+    files_changed:
+      - scripts/ci/check_pr_preflight.py
+    changes:
+      - "Deleted read_pr_body() and add_pr_body_steps(), and the add_pr_body_steps call in main(). This removes the only invocation of check_spec_lifecycle.py."
+      - "Deleted the two SpecRail tuples from fast_steps(): test_specrail_gate_wiring.py and sync-specrail-checks.sh --verify."
+      - "Retained --pr-body-file, --pr-title and --skip-pr-body-checks as accepted arguments, help text changed to 'Accepted for compatibility; no longer used'."
+      - "Left run()'s keyword-only env parameter in place. It is now never passed, but it is generic helper plumbing rather than spec-lifecycle-specific, so removing it would widen the diff without benefit."
+    deliberately_not_changed:
+      - "AGENTS.md:89-95. Its sentence about the PR body feeding 'spec-lifecycle and version bump checks' goes stale with this commit, but R0-02's Scope explicitly owns updating AGENTS.md, and editing it here would collide. Note that the 'version bump' half of that sentence was already wrong before this task: check_version_bump.py reads no environment."
+      - "Task file checkboxes. docs/tasks/README.md puts status in project.md, and the one completed task (R0-11) left its boxes unticked."
+    codex_validated: false
+    codex_verdict: null
+    codex_report: null
+    gemini_validation_report: null
+
+  pr:
+    status: pending
+    pr_url: null
+    pr_number: null
+    reviews_addressed: 0
+    approved: false
+    ci_passed: false
+
+  complete:
+    status: pending
+    aggregation_files_updated: false
+    merged_at: null
+
+advisor:
+  enabled: false
+  disabled_reason: "Session instruction: do not call the Agent tool unless the user requested it. Checkpoints A/B/C dispatch Agent subagents, so the consult is off for this workflow. Orchestrator validation requires advisor.calls entries only when advisor.enabled."
+  model: null
+  effort: high
+  max_calls_per_checkpoint: 1
+  calls: []
+
+outcome:
+  max_iterations: 3
+  iteration: 0
+  status: pending
+
+history:
+  - timestamp: "2026-08-02T13:49:36Z"
+    action: workflow_started
+    phase: spec
+    details: "Workflow initialized for R0-01 from docs/tasks/r0-01-narrow-pr-preflight.md; classified as specification (well-scoped, no architecture decisions, runnable acceptance criteria)"
+
+  - timestamp: "2026-08-02T13:52:00Z"
+    action: spec_review_failed
+    phase: spec
+    details: "Dual-model spec review unavailable: no .lok/ directory in this repo, so .lok/workflows/spec-review.toml does not exist. Proceeded to checkpoint per phases/spec.md step 2c-post (NO_REVIEWS_AVAILABLE path)."
+
+  - timestamp: "2026-08-02T13:53:00Z"
+    action: advisor_skipped
+    phase: spec
+    details: "Checkpoint A not run: advisor.enabled set false because the session instruction forbids calling the Agent tool unless the user requests it."
+
+  - timestamp: "2026-08-02T13:58:00Z"
+    action: spec_approved
+    phase: spec
+    details: "User resolved the one ambiguity the task file leaves open (orphaned PR-body flags) by choosing accepted no-ops with helpers deleted. Baseline captured first: all 12 fast checks green at 63795352."
+</content>
+</invoke>
