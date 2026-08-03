@@ -102,6 +102,8 @@ phases:
     status: in_progress
     pr_url: "https://github.com/maxkulish/recol/pull/1"
     pr_number: 1
+    # Counts review ROUNDS, per .claude/templates/workflow-state.yaml:91.
+    # Per-round finding counts live in review_rounds[].findings.
     reviews_addressed: 2
     approved: false
     ci_passed: false
@@ -117,6 +119,18 @@ phases:
         outcome:
           - "Action required, Bug/Correctness: docs/status/r0-01-workflow.yaml ended with two stray closing tags after the root mapping. FIXED. Confirmed real - yaml.safe_load raised ScannerError at line 183, so the state file did not parse at all. Self-inflicted: tool-call closing tags leaked into the file content on first write."
           - "Review recommended, Bug/Maintainability: AGENTS.md described PR-body behaviour the preflight no longer has. FIXED, reversing the earlier decision to defer it to R0-02. R0-01 creates the staleness, and R0-02's acceptance grep searches spec_lifecycle with an underscore while the line spelled it spec-lifecycle with a hyphen, so that criterion would have passed while leaving the wrong sentence in place."
+        result: "Both findings struck through by Qodo on re-review at db2bd901."
+
+      - round: 2
+        reviewer: "qodo-code-review[bot]"
+        triggered_by: "automatic re-review on push of a9e75f1e"
+        findings: 1
+        rule_violations: 0
+        summary_only_findings: 0
+        fix_commit: "pending in this commit"
+        replies_posted: "1/1"
+        outcome:
+          - "Bug/Correctness: phases.pr.reviews_addressed was set to 2 while only one review round was recorded. Correct - .claude/templates/workflow-state.yaml:91 defines the field as a count of review rounds, and 2 was counting findings. FIXED by recording this round explicitly, so the value now genuinely means rounds and matches the number of review_rounds entries."
     ci_never_ran:
       observed: "The pull request produced no check runs at all. `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 0: GitHub Actions has never executed on this repository. The ci.yml workflow itself reports 0 runs, and the head SHA has 0 check-runs."
       repo_state: "fork=false, parent=null, archived=false, disabled=false, private=false, actions permissions enabled=true allowed_actions=all, and all six workflows report state=active. Nothing in the API explains the absence; the likely cause is that Actions was never acknowledged/enabled in the UI after the fork detach, which the permissions endpoint does not reflect."
