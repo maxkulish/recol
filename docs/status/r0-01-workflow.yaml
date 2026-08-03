@@ -104,7 +104,7 @@ phases:
     pr_number: 1
     # Counts review ROUNDS, per .claude/templates/workflow-state.yaml:91.
     # Per-round finding counts live in review_rounds[].findings.
-    reviews_addressed: 2
+    reviews_addressed: 3
     approved: false
     ci_passed: false
     review_rounds:
@@ -127,10 +127,22 @@ phases:
         findings: 1
         rule_violations: 0
         summary_only_findings: 0
-        fix_commit: "pending in this commit"
+        fix_commit: "fbd1e768"
         replies_posted: "1/1"
         outcome:
           - "Bug/Correctness: phases.pr.reviews_addressed was set to 2 while only one review round was recorded. Correct - .claude/templates/workflow-state.yaml:91 defines the field as a count of review rounds, and 2 was counting findings. FIXED by recording this round explicitly, so the value now genuinely means rounds and matches the number of review_rounds entries."
+
+      - round: 3
+        reviewer: "qodo-code-review[bot]"
+        triggered_by: "automatic re-review on push of fbd1e768"
+        findings: 1
+        rule_violations: 0
+        summary_only_findings: 0
+        fix_commit: null
+        fix_commit_note: "Left null deliberately. A round's fix SHA cannot be known while writing the commit that carries it, which is what produced the placeholder this round flagged. Backfilled by the immediately following commit."
+        replies_posted: "1/1"
+        outcome:
+          - "Bug/Maintainability: review_rounds[round 2].fix_commit held the prose placeholder 'pending in this commit' rather than a SHA, weakening the audit trail. Correct. FIXED by setting it to fbd1e768, the commit that actually addressed round 2."
     ci_never_ran:
       observed: "The pull request produced no check runs at all. `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 0: GitHub Actions has never executed on this repository. The ci.yml workflow itself reports 0 runs, and the head SHA has 0 check-runs."
       repo_state: "fork=false, parent=null, archived=false, disabled=false, private=false, actions permissions enabled=true allowed_actions=all, and all six workflows report state=active. Nothing in the API explains the absence; the likely cause is that Actions was never acknowledged/enabled in the UI after the fork detach, which the permissions endpoint does not reflect."
