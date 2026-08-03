@@ -1,6 +1,6 @@
 # R0-06 - Automate the isolated first-run smoke
 
-Type: **AFK** | Blocked by: R0-05 | Blocks: none
+Type: **AFK** | Blocked by: R0-00, R0-05 | Blocks: none
 Phase: 1 | Spec: `docs/plan/20-rename-and-release/tech.md` (Phase 1)
 
 ## Goal

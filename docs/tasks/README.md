@@ -24,11 +24,14 @@ before that inspection:
 
 - R0-01 must precede R0-02 because the mandated preflight invokes scripts R0-02
   deletes. **Satisfied** - R0-01 is merged, so R0-02 is clear to start.
+- R0-00 exists because GitHub Actions has never run here. Six acceptance
+  criteria across R0-02, 04, 05, 06, and 07 read "on a pull request, X runs and
+  passes", and none can be met while nothing starts. It also disables four
+  workflows before enabling runs - `auto-release.yml` triggers on CI completing
+  on `main` and would attempt to publish a release.
 - R0-04 is blocked by R0-05 because branch protection pins a status check by
-  name, and R0-05 renames the job. It is also blocked by a second constraint the
-  plan did not anticipate: GitHub Actions has never run on this repository, and
-  a required status check that never reports blocks every merge to `main`
-  permanently. Confirm CI actually runs before applying R0-04.
+  name, and R0-05 renames the job. Applying it before R0-00 would pin a check
+  that never reports, blocking every merge to `main` permanently.
 - R0-08's acceptance criteria require the audit to **fail** on the current tree.
   That is the point: an audit nobody has seen fail proves nothing.
 - R0-11 exists because there is no export subcommand for an extraction task, so
@@ -57,7 +60,10 @@ you need the old installation, restore it - `RESTORE.md` is in that directory.
 **R0-01 is complete**, merged as PR #1. Its five acceptance criteria are green
 and the preflight no longer invokes the three scripts R0-02 deletes.
 
-Start with any of **02, 03, or 08** - all unblocked. Note before starting 02:
-its acceptance criterion "CI passes on the pull request" cannot be met while
-Actions never runs on this repository, so decide up front whether to fix that or
-to record the criterion as waived.
+**Start with R0-00.** It gates 02, 04, 05, 06, and 07. R0-05 is the entire CI
+rebuild and is verified almost wholly through pull request runs, so skipping
+R0-00 means building CI blind and finding out at R0-04 that nothing ever ran.
+Read its warning about disabling four workflows before enabling anything.
+
+**03 and 08 are unblocked** and depend on none of this, so they can run
+alongside R0-00.

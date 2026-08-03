@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-08-01.
+Last updated: 2026-08-03.
 
 ## Done
 
@@ -16,7 +16,6 @@ Last updated: 2026-08-01.
 | R0 spec written and reviewed | `docs/plan/20-rename-and-release/`, revised at `eaf208c7` after a 12-point review |
 | R0 broken into 18 executable tasks | `docs/tasks/` |
 | R0-11 snapshot taken and proven restorable | `~/Backups/recol/2026-07-31/`, inventory at `docs/specs/r0-11-inventory-and-snapshot/INVENTORY.md`; Task 7 cleanup substituted `find -depth -delete` after a safety hook twice refused `rm -rf`, with the deleted paths verified correct and the substitution surfaced to and accepted by the user |
-
 | R0-11's four deferred findings closed | `r0-12`, `tech.md`, `tasks.md`, `product.md`, `docs/tasks/README.md` - the parent contracts still mandated an export path that does not exist, inventoried before restoring, compared searches against the live source, and routed agents at a completed task |
 | `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
 | R0-01 preflight narrowed, merged | [PR #1](https://github.com/maxkulish/recol/pull/1) merged at `35129895`. All five acceptance criteria green: full preflight 15/15, `--fast` 9/9, `cargo test --workspace` 3144 passed. The three doomed checks are gone from the preflight and still invoked directly by `ci.yml`, so R0-02 can now delete them. Four Qodo findings were raised and fixed across three review rounds; the highest-severity one was a state file that did not parse as YAML while every local gate was green |
@@ -36,14 +35,26 @@ green history, which is easy to mistake for recol activity.
 
 ## Next
 
-**Start with any of R0-02, R0-03, or R0-08** - all unblocked. R0-01 is merged,
-which is what unblocked R0-02: the preflight no longer invokes the three scripts
-R0-02 deletes.
+**Start with R0-00.** Six acceptance criteria across five tasks - R0-02, R0-04,
+R0-05, R0-06, R0-07 - read "on a pull request, X runs and passes", and none of
+them can be met while Actions never starts. R0-05 is the whole CI rebuild and is
+verified almost entirely through pull request runs, so proceeding without it
+means building CI blind and discovering at R0-04 that nothing ever ran.
 
-R0-02 carries the acceptance criterion "CI passes on the pull request", which
-cannot be satisfied while Actions never runs. Either resolve that first, or
-record the criterion as waived with the reason - do not treat an absent check as
-a passing one.
+**Do not simply switch Actions on.** Four workflows fire the moment it works,
+and `auto-release.yml` triggers on CI completing on `main` and attempts to tag
+and publish a release. `closure-audit.yml` and `sensitive-governance.yml` are
+`pull_request_target` bots needing `issues: write`, which is disabled here.
+`pages.yml` deploys a site that is not configured. R0-00 disables those four
+first, while Actions is still dormant, and leaves only CI and the tag-triggered
+`release.yml`.
+
+Expect the first CI run to be **red**: `ci.yml` still carries the GH813 replay a
+detached repository cannot satisfy. A red run that concludes satisfies R0-00;
+R0-02 and R0-05 make it green.
+
+**R0-03 and R0-08 remain unblocked** and depend on none of this, so they can run
+alongside.
 
 R0-11 is done: `~/.remem` is backed up to an encrypted, restore-proven archive
 at `~/Backups/recol/2026-07-31/`. R0-12 (blocked by 10, 11) can proceed once
@@ -55,13 +66,14 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 
 | Task | Type | Blocked by | Status |
 |---|---|---|---|
+| [00 Enable GitHub Actions](docs/tasks/r0-00-enable-actions.md) | HITL | - | **next** |
 | [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | done |
-| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 01 | todo |
+| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | todo |
 | [03 Delete npm/ and server.json](docs/tasks/r0-03-delete-npm-and-server-json.md) | AFK | - | todo |
-| [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 05 | todo |
-| [05 Rebuild ci.yml, Rust first](docs/tasks/r0-05-rebuild-ci-rust-first.md) | AFK | 02, 03 | todo |
-| [06 First-run smoke](docs/tasks/r0-06-first-run-smoke.md) | AFK | 05 | todo |
-| [07 Hosted macOS jobs](docs/tasks/r0-07-hosted-macos-jobs.md) | AFK | 05 | todo |
+| [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 00, 05 | todo |
+| [05 Rebuild ci.yml, Rust first](docs/tasks/r0-05-rebuild-ci-rust-first.md) | AFK | 00, 02, 03 | todo |
+| [06 First-run smoke](docs/tasks/r0-06-first-run-smoke.md) | AFK | 00, 05 | todo |
+| [07 Hosted macOS jobs](docs/tasks/r0-07-hosted-macos-jobs.md) | AFK | 00, 05 | todo |
 | [08 Rename manifest and audit](docs/tasks/r0-08-rename-manifest-and-audit.md) | AFK | - | todo |
 | [09 Rename build surfaces, 0.7.0](docs/tasks/r0-09-rename-build-surfaces.md) | AFK | 07, 08 | todo |
 | [10 Rename remaining surfaces](docs/tasks/r0-10-rename-remaining-surfaces.md) | AFK | 09 | todo |
@@ -75,6 +87,8 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 | [18 Publish and activate](docs/tasks/r0-18-publish-and-activate.md) | HITL | 17 | todo |
 
 ```
+00 gates 02, 04, 05, 06, 07 - every task verified by a CI run
+
 11 ──────────────────────────┐
 01 ─> 02 ─┐                  │
 03 ───────┴─> 05 ─┬─> 04 ────┼──> 14 ─> 15 ─┐

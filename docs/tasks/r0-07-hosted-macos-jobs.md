@@ -1,6 +1,6 @@
 # R0-07 - Add hosted ARM and Intel macOS jobs
 
-Type: **AFK** | Blocked by: R0-05 | Blocks: R0-09
+Type: **AFK** | Blocked by: R0-00, R0-05 | Blocks: R0-09
 Phase: 1 | Spec: `docs/plan/20-rename-and-release/tech.md` (Phase 1)
 
 ## Goal

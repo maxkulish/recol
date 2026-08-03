@@ -1,6 +1,6 @@
 # R0-05 - Rebuild ci.yml with the Rust gates first
 
-Type: **AFK** | Blocked by: R0-02, R0-03 | Blocks: R0-04, R0-06, R0-07
+Type: **AFK** | Blocked by: R0-00, R0-02, R0-03 | Blocks: R0-04, R0-06, R0-07
 Phase: 1 | Spec: `docs/plan/20-rename-and-release/tech.md` (Phase 1)
 
 ## Goal

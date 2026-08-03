@@ -1,6 +1,6 @@
 # R0-02 - Delete the heavy governance machinery
 
-Type: **AFK** | Blocked by: R0-01 | Blocks: R0-05
+Type: **AFK** | Blocked by: R0-00, R0-01 | Blocks: R0-05
 Phase: 0 | Spec: `docs/plan/20-rename-and-release/tech.md` (Phase 0)
 
 ## Goal

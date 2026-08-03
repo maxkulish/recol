@@ -1,6 +1,6 @@
 # R0-04 - Configure branch protection, tag ruleset, release environment
 
-Type: **HITL** | Blocked by: R0-05 | Blocks: R0-14
+Type: **HITL** | Blocked by: R0-00, R0-05 | Blocks: R0-14
 Phase: 0 | Spec: `docs/plan/20-rename-and-release/tech.md` (Phase 0)
 
 ## Goal
