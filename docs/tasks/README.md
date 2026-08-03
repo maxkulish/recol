@@ -23,9 +23,12 @@ inspecting the repository, and several contradict what the plan looked like
 before that inspection:
 
 - R0-01 must precede R0-02 because the mandated preflight invokes scripts R0-02
-  deletes.
+  deletes. **Satisfied** - R0-01 is merged, so R0-02 is clear to start.
 - R0-04 is blocked by R0-05 because branch protection pins a status check by
-  name, and R0-05 renames the job.
+  name, and R0-05 renames the job. It is also blocked by a second constraint the
+  plan did not anticipate: GitHub Actions has never run on this repository, and
+  a required status check that never reports blocks every merge to `main`
+  permanently. Confirm CI actually runs before applying R0-04.
 - R0-08's acceptance criteria require the audit to **fail** on the current tree.
   That is the point: an audit nobody has seen fail proves nothing.
 - R0-11 exists because there is no export subcommand for an extraction task, so
@@ -51,4 +54,10 @@ rerun it: a second run would take a fresh baseline from a source that has since
 been read, and would overwrite a verified artifact with an unverified one. If
 you need the old installation, restore it - `RESTORE.md` is in that directory.
 
-Start with any of **01, 03, or 08** - all unblocked, none depends on R0-11.
+**R0-01 is complete**, merged as PR #1. Its five acceptance criteria are green
+and the preflight no longer invokes the three scripts R0-02 deletes.
+
+Start with any of **02, 03, or 08** - all unblocked. Note before starting 02:
+its acceptance criterion "CI passes on the pull request" cannot be met while
+Actions never runs on this repository, so decide up front whether to fix that or
+to record the criterion as waived.

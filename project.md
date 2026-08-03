@@ -19,9 +19,10 @@ Last updated: 2026-08-01.
 
 | R0-11's four deferred findings closed | `r0-12`, `tech.md`, `tasks.md`, `product.md`, `docs/tasks/README.md` - the parent contracts still mandated an export path that does not exist, inventoried before restoring, compared searches against the live source, and routed agents at a completed task |
 | `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
+| R0-01 preflight narrowed, merged | [PR #1](https://github.com/maxkulish/recol/pull/1) merged at `35129895`. All five acceptance criteria green: full preflight 15/15, `--fast` 9/9, `cargo test --workspace` 3144 passed. The three doomed checks are gone from the preflight and still invoked directly by `ci.yml`, so R0-02 can now delete them. Four Qodo findings were raised and fixed across three review rounds; the highest-severity one was a state file that did not parse as YAML while every local gate was green |
 
 No CI, workflow, or GitHub setting has been changed. The first code change is
-R0-01, open as PR #1.
+R0-01, merged as PR #1.
 
 **GitHub Actions has never run on this repository.** `actions/runs` reports a
 total count of 0, and PR #1 produced no check runs, even though permissions are
@@ -35,8 +36,14 @@ green history, which is easy to mistake for recol activity.
 
 ## Next
 
-**Start with any of R0-01, R0-03, or R0-08** - all unblocked, none depends on
-R0-11.
+**Start with any of R0-02, R0-03, or R0-08** - all unblocked. R0-01 is merged,
+which is what unblocked R0-02: the preflight no longer invokes the three scripts
+R0-02 deletes.
+
+R0-02 carries the acceptance criterion "CI passes on the pull request", which
+cannot be satisfied while Actions never runs. Either resolve that first, or
+record the criterion as waived with the reason - do not treat an absent check as
+a passing one.
 
 R0-11 is done: `~/.remem` is backed up to an encrypted, restore-proven archive
 at `~/Backups/recol/2026-07-31/`. R0-12 (blocked by 10, 11) can proceed once
@@ -48,7 +55,7 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 
 | Task | Type | Blocked by | Status |
 |---|---|---|---|
-| [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | in review, [PR #1](https://github.com/maxkulish/recol/pull/1) |
+| [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | done |
 | [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 01 | todo |
 | [03 Delete npm/ and server.json](docs/tasks/r0-03-delete-npm-and-server-json.md) | AFK | - | todo |
 | [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 05 | todo |

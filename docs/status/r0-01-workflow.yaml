@@ -13,8 +13,8 @@ task_type: specification
 created: "2026-08-02T13:49:36Z"
 
 workflow:
-  current_phase: pr
-  status: in_progress
+  current_phase: complete
+  status: complete
 
 phases:
   discovery:
@@ -157,9 +157,20 @@ phases:
       - "R0-04 pins branch protection to a status check by name. Applying it while Actions never runs would make main permanently unmergeable, since a required check that never reports blocks forever."
 
   complete:
-    status: pending
-    aggregation_files_updated: false
-    merged_at: null
+    status: complete
+    aggregation_files_updated: true
+    merged_at: "2026-08-03T12:01:21Z"
+    merge_commit: "35129895"
+    merge_style: "merge commit, not squash; the eight branch commits are preserved on main"
+    aggregation_files:
+      updated:
+        - "project.md - R0-01 row set to done, evidence row added to the Done table, Next section rerouted to 02/03/08"
+        - "docs/tasks/README.md - R0-01/R0-02 ordering marked satisfied, R0-04 given its second blocker, routing line updated"
+        - "docs/status/r0-01-workflow.yaml - this file"
+      not_updated:
+        - "docs/plan/01-roadmap.md - contains no R0-NN task rows, so there is no per-task status to change. Skipped rather than invented."
+        - "Linear - this task has no Linear issue (linear_url: null). R0 work is tracked in docs/tasks/ and project.md, and issues are disabled on the repository."
+    caveat: "pr.ci_passed remains false and that is accurate: CI never ran. Completion rests on the five acceptance criteria plus three Qodo review rounds, not on a green pipeline."
 
 advisor:
   enabled: false
@@ -228,3 +239,28 @@ history:
     action: review_addressed
     phase: pr
     details: "Qodo round 1: 2 findings, both fixed in a9e75f1e, 2/2 replies posted. The YAML state file did not parse before this fix."
+
+  - timestamp: "2026-08-03T11:38:00Z"
+    action: review_addressed
+    phase: pr
+    details: "Qodo round 2: 1 finding (reviews_addressed counted findings, not rounds), fixed in fbd1e768, 1/1 reply posted."
+
+  - timestamp: "2026-08-03T11:45:00Z"
+    action: review_addressed
+    phase: pr
+    details: "Qodo round 3: 1 finding (prose placeholder where a fix SHA belonged), fixed in 048bb906 and backfilled by fa12cea3, 1/1 reply posted. Qodo then reported 0 open findings."
+
+  - timestamp: "2026-08-03T12:01:21Z"
+    action: pr_merged
+    phase: pr
+    details: "PR #1 merged by the user as merge commit 35129895. CI never ran, so pr.ci_passed stays false."
+
+  - timestamp: "2026-08-03T12:15:00Z"
+    action: project_sync_complete
+    phase: complete
+    details: "project.md and docs/tasks/README.md updated: R0-01 done, R0-02 unblocked, R0-04 given its second blocker. docs/plan/01-roadmap.md skipped - it tracks no per-task rows. No Linear sync: this task has no Linear issue."
+
+  - timestamp: "2026-08-03T12:16:00Z"
+    action: workflow_complete
+    phase: complete
+    details: "R0-01 complete. Five acceptance criteria green, four Qodo findings fixed across three rounds, merged. Completion rests on those, not on CI, which has never run on this repository."
