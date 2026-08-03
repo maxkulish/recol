@@ -105,6 +105,10 @@ phases:
     # Counts review ROUNDS, per .claude/templates/workflow-state.yaml:91.
     # Per-round finding counts live in review_rounds[].findings.
     reviews_addressed: 3
+    review_comment_threads_resolved: 4
+    bot_review_wait_completed: true
+    pre_merge_refetch_passed: true
+    pre_merge_refetch_note: "Re-fetched the Qodo summary and inline comments after the final push and confirmed Bugs (0) / Rule violations (0) / Skill insights (0) with all four findings struck through, before the merge."
     approved: false
     ci_passed: false
     review_rounds:
@@ -171,6 +175,12 @@ phases:
         - "docs/plan/01-roadmap.md - contains no R0-NN task rows, so there is no per-task status to change. Skipped rather than invented."
         - "Linear - this task has no Linear issue (linear_url: null). R0 work is tracked in docs/tasks/ and project.md, and issues are disabled on the repository."
     caveat: "pr.ci_passed remains false and that is accurate: CI never ran. Completion rests on the five acceptance criteria plus three Qodo review rounds, not on a green pipeline."
+    lessons_file: "~/.claude/session-knowledge/recol--refactor-01--056c7066/notes.md (12 entries, reached via the .session symlink in each worktree)"
+    lessons_learned:
+      - "Every local gate was green while docs/status/r0-01-workflow.yaml did not parse as YAML. The preflight covers source and tests; nothing covers the artifacts the workflow itself writes, which is where three of the four review findings landed. One yaml.safe_load loop over docs/status/*.yaml would have caught the worst one before the first push."
+      - "A bare `gh run list` in a worktree resolves to the `upstream` remote and returns majiayu000/remem's green history. That nearly produced a false 'CI is working' conclusion; recol has in fact never run Actions. Always pass --repo maxkulish/recol."
+      - "Push-triggered bot review iterates: a fix commit can itself raise the next finding, and here it did twice. Budget for convergence over several rounds rather than a single pass, and hold fix commits to the same standard as the original change."
+      - "The task file's Context misdescribed where the third check lived, turning a nominal three-line deletion into 53 lines. Reading the code before trusting a task's line references is what surfaced the PR-body flag constraint that the acceptance criteria silently depended on."
 
 advisor:
   enabled: false
