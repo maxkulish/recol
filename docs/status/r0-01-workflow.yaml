@@ -102,9 +102,21 @@ phases:
     status: in_progress
     pr_url: "https://github.com/maxkulish/recol/pull/1"
     pr_number: 1
-    reviews_addressed: 0
+    reviews_addressed: 2
     approved: false
     ci_passed: false
+    review_rounds:
+      - round: 1
+        reviewer: "qodo-code-review[bot]"
+        triggered_by: "maxkulish posted /agentic_review on the PR"
+        findings: 2
+        rule_violations: 0
+        summary_only_findings: 0
+        fix_commit: "a9e75f1e"
+        replies_posted: "2/2"
+        outcome:
+          - "Action required, Bug/Correctness: docs/status/r0-01-workflow.yaml ended with two stray closing tags after the root mapping. FIXED. Confirmed real - yaml.safe_load raised ScannerError at line 183, so the state file did not parse at all. Self-inflicted: tool-call closing tags leaked into the file content on first write."
+          - "Review recommended, Bug/Maintainability: AGENTS.md described PR-body behaviour the preflight no longer has. FIXED, reversing the earlier decision to defer it to R0-02. R0-01 creates the staleness, and R0-02's acceptance grep searches spec_lifecycle with an underscore while the line spelled it spec-lifecycle with a hyphen, so that criterion would have passed while leaving the wrong sentence in place."
     ci_never_ran:
       observed: "The pull request produced no check runs at all. `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 0: GitHub Actions has never executed on this repository. The ci.yml workflow itself reports 0 runs, and the head SHA has 0 check-runs."
       repo_state: "fork=false, parent=null, archived=false, disabled=false, private=false, actions permissions enabled=true allowed_actions=all, and all six workflows report state=active. Nothing in the API explains the absence; the likely cause is that Actions was never acknowledged/enabled in the UI after the fork detach, which the permissions endpoint does not reflect."
@@ -180,3 +192,13 @@ history:
     action: outcome_ungraded
     phase: implement
     details: "lok implement-gate workflow unavailable (no .lok/workflows/implement-gate.toml; lok exposes only built-in audit/diff/explain/hunt). Escalated to the human menu per orchestrate.md."
+
+  - timestamp: "2026-08-03T11:05:00Z"
+    action: pr_created
+    phase: pr
+    details: "PR #1 opened at https://github.com/maxkulish/recol/pull/1"
+
+  - timestamp: "2026-08-03T11:20:00Z"
+    action: review_addressed
+    phase: pr
+    details: "Qodo round 1: 2 findings, both fixed in a9e75f1e, 2/2 replies posted. The YAML state file did not parse before this fix."
