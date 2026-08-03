@@ -99,12 +99,24 @@ phases:
     gemini_validation_report: null
 
   pr:
-    status: pending
-    pr_url: null
-    pr_number: null
+    status: in_progress
+    pr_url: "https://github.com/maxkulish/recol/pull/1"
+    pr_number: 1
     reviews_addressed: 0
     approved: false
     ci_passed: false
+    ci_never_ran:
+      observed: "The pull request produced no check runs at all. `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 0: GitHub Actions has never executed on this repository. The ci.yml workflow itself reports 0 runs, and the head SHA has 0 check-runs."
+      repo_state: "fork=false, parent=null, archived=false, disabled=false, private=false, actions permissions enabled=true allowed_actions=all, and all six workflows report state=active. Nothing in the API explains the absence; the likely cause is that Actions was never acknowledged/enabled in the UI after the fork detach, which the permissions endpoint does not reflect."
+      consequence: "The linked-issue failure predicted before opening the PR never occurs, because no step executes. The prediction was correct about the gate's logic and wrong about it being reached."
+      caution: "gh run list without --repo resolves to the `upstream` remote (majiayu000/remem) in this checkout, which shows unrelated green runs and can be mistaken for recol activity. Always pass --repo maxkulish/recol."
+    verified_locally_against_final_body:
+      - "check_spec_lifecycle.py origin/main HEAD -> exit 0, 'Spec lifecycle check passed'"
+      - "check_pr_tier.py origin/main HEAD --issue 1 -> exit 0, enforcement_sensitive=false"
+    note: "The PR was assigned number 1, which is the number a fabricated `Refs #1` would have pointed at, since GitHub shares one numbering sequence between issues and pull requests."
+    downstream_impact:
+      - "R0-02, R0-05 and others carry an acceptance criterion 'CI passes on the pull request'. That criterion is currently unsatisfiable, not because a gate fails but because no gate runs."
+      - "R0-04 pins branch protection to a status check by name. Applying it while Actions never runs would make main permanently unmergeable, since a required check that never reports blocks forever."
 
   complete:
     status: pending

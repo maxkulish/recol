@@ -20,7 +20,18 @@ Last updated: 2026-08-01.
 | R0-11's four deferred findings closed | `r0-12`, `tech.md`, `tasks.md`, `product.md`, `docs/tasks/README.md` - the parent contracts still mandated an export path that does not exist, inventoried before restoring, compared searches against the live source, and routed agents at a completed task |
 | `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
 
-No code has been written. No CI, workflow, or GitHub setting has been changed.
+No CI, workflow, or GitHub setting has been changed. The first code change is
+R0-01, open as PR #1.
+
+**GitHub Actions has never run on this repository.** `actions/runs` reports a
+total count of 0, and PR #1 produced no check runs, even though permissions are
+enabled and all six workflows report `active`. Any acceptance criterion of the
+form "CI passes on the pull request" is currently unsatisfiable - nothing fails,
+nothing runs. R0-04 must not be applied until this is resolved: it pins branch
+protection to a required status check by name, and a check that never reports
+blocks every merge to `main` permanently. Note also that a bare `gh run list` in
+a local checkout resolves to the `upstream` remote and shows majiayu000/remem's
+green history, which is easy to mistake for recol activity.
 
 ## Next
 
@@ -37,7 +48,7 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 
 | Task | Type | Blocked by | Status |
 |---|---|---|---|
-| [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | todo |
+| [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | in review, [PR #1](https://github.com/maxkulish/recol/pull/1) |
 | [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 01 | todo |
 | [03 Delete npm/ and server.json](docs/tasks/r0-03-delete-npm-and-server-json.md) | AFK | - | todo |
 | [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 05 | todo |
