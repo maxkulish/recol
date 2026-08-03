@@ -13,7 +13,7 @@ task_type: specification
 created: "2026-08-02T13:49:36Z"
 
 workflow:
-  current_phase: implement
+  current_phase: pr
   status: in_progress
 
 phases:
@@ -54,11 +54,35 @@ phases:
       - "rg -c on the six retained scripts currently returns 6 (lines 118-122, 134) and is unaffected by the removals."
 
   implement:
-    status: in_progress
+    status: complete
     current_step: 4
     total_steps: 4
-    commits: []
-    last_phase_completed: "edits applied; acceptance criteria verifying"
+    commits:
+      - "ca996bc1"
+    last_phase_completed: "all five acceptance criteria verified green"
+    acceptance_criteria:
+      - id: 1
+        command: "printf 'test\\n' > /tmp/pr-body.md && python3 scripts/ci/check_pr_preflight.py --base origin/main --pr-body-file /tmp/pr-body.md"
+        expected: "exits 0"
+        result: "PASS - exit 0, 15/15 gates PASS, 'preflight passed'"
+      - id: 2
+        command: "python3 scripts/ci/check_pr_preflight.py --fast --base origin/main --pr-body-file /tmp/pr-body.md"
+        expected: "exits 0"
+        result: "PASS - exit 0, 9/9 mechanical gates PASS"
+      - id: 3
+        command: "rg -n 'spec_lifecycle|specrail|sync-specrail' scripts/ci/check_pr_preflight.py"
+        expected: "returns nothing"
+        result: "PASS - no matches"
+      - id: 4
+        command: "rg -c 'check_plugin_version_sync|check_public_surface|check_public_claims|check_file_size|check_release_workflows|check_version_bump' scripts/ci/check_pr_preflight.py"
+        expected: "returns 6"
+        result: "PASS - returns 6"
+      - id: 5
+        command: "cargo test --workspace"
+        expected: "exits 0"
+        result: "PASS - exit 0, 3144 passed, 0 failed"
+    baseline_before_change: "All 12 fast gates green at 63795352, including the three now removed. Any regression would therefore be attributable to this change."
+    ci_coverage_note: "CI (.github/workflows/ci.yml lines 25, 35, 53) invokes the three removed checks directly, not through check_pr_preflight.py. Trimming the wrapper does not reduce gate coverage on the PR. R0-02 strips those ci.yml steps and deletes the files in one commit."
     files_changed:
       - scripts/ci/check_pr_preflight.py
     changes:
@@ -98,7 +122,11 @@ advisor:
 outcome:
   max_iterations: 3
   iteration: 0
-  status: pending
+  status: ungraded
+  ungraded_reason: "phases/implement.md Step 5 requires `lok workflow run implement-gate`, backed by .lok/workflows/implement-gate.toml. This repo has no .lok/ directory, and `lok workflow list` offers only the built-ins audit, diff, explain and hunt. The phase file forbids the workarounds: shelling out to `codex exec`/`gemini` directly is named an anti-pattern, and hand-writing a review file is prohibited. Grader unreachable, so per orchestrate.md this resolves to ungraded and escalates to the human menu."
+  codex_cli_present: true
+  gemini_cli_present: true
+  note: "Both CLIs are installed, but Step 5 routes Gemini through `opencode run` and treats the standalone gemini CLI as deprecated, so their presence does not make the mandated gate reachable."
 
 history:
   - timestamp: "2026-08-02T13:49:36Z"
@@ -120,5 +148,25 @@ history:
     action: spec_approved
     phase: spec
     details: "User resolved the one ambiguity the task file leaves open (orphaned PR-body flags) by choosing accepted no-ops with helpers deleted. Baseline captured first: all 12 fast checks green at 63795352."
+
+  - timestamp: "2026-08-02T14:00:39Z"
+    action: implementation_complete
+    phase: implement
+    details: "scripts/ci/check_pr_preflight.py trimmed: 9 insertions, 53 deletions. All five acceptance criteria verified green, including 3144 workspace tests."
+
+  - timestamp: "2026-08-02T14:12:00Z"
+    action: advisor_skipped
+    phase: implement
+    details: "Checkpoint B not run: advisor.enabled is false (session instruction forbids Agent tool use unless requested)."
+
+  - timestamp: "2026-08-02T14:14:00Z"
+    action: commit_created
+    phase: implement
+    details: "ca996bc1 chore(ci): narrow the PR preflight to surviving checks"
+
+  - timestamp: "2026-08-02T14:15:00Z"
+    action: outcome_ungraded
+    phase: implement
+    details: "lok implement-gate workflow unavailable (no .lok/workflows/implement-gate.toml; lok exposes only built-in audit/diff/explain/hunt). Escalated to the human menu per orchestrate.md."
 </content>
 </invoke>
