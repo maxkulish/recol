@@ -138,8 +138,8 @@ phases:
         findings: 1
         rule_violations: 0
         summary_only_findings: 0
-        fix_commit: null
-        fix_commit_note: "Left null deliberately. A round's fix SHA cannot be known while writing the commit that carries it, which is what produced the placeholder this round flagged. Backfilled by the immediately following commit."
+        fix_commit: "048bb906"
+        fix_commit_note: "Written as null in 048bb906 itself, then backfilled by the following commit. A round's fix SHA cannot be known while writing the commit that carries it, which is what produced the placeholder this round flagged; null-then-backfill avoids inventing a value."
         replies_posted: "1/1"
         outcome:
           - "Bug/Maintainability: review_rounds[round 2].fix_commit held the prose placeholder 'pending in this commit' rather than a SHA, weakening the audit trail. Correct. FIXED by setting it to fbd1e768, the commit that actually addressed round 2."
