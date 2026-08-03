@@ -180,5 +180,3 @@ history:
     action: outcome_ungraded
     phase: implement
     details: "lok implement-gate workflow unavailable (no .lok/workflows/implement-gate.toml; lok exposes only built-in audit/diff/explain/hunt). Escalated to the human menu per orchestrate.md."
-</content>
-</invoke>
