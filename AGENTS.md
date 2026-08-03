@@ -90,9 +90,9 @@ python3 scripts/ci/check_pr_preflight.py --base origin/main --pr-body-file /tmp/
 ```
 
 Use `--fast` for the mechanical subset while iterating, then run the full
-preflight before merge readiness. If the PR already exists, copy the intended
-PR body to the file passed with `--pr-body-file` so spec-lifecycle and version
-bump checks see the same metadata as CI.
+preflight before merge readiness. `--pr-body-file`, `--pr-title` and
+`--skip-pr-body-checks` are accepted for compatibility but no longer feed any
+check, so the preflight does not validate PR-body governance.
 
 Before completion for code changes:
 
