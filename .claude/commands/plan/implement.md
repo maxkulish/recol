@@ -909,34 +909,9 @@ Your choice:
 
 ---
 
-## Command Philosophy
+## After the last phase
 
-**This command is designed to**:
-
-1. **Automate implementation**: Follow patterns from architecture doc
-2. **Maintain quality**: Validate after each task
-3. **Track progress**: Update plan file and status in real-time
-4. **Be resumable**: Continue where you left off
-5. **Document thoroughly**: Create comprehensive status files
-6. **Follow conventions**: Conventional commits, no emojis
-
-**This command does NOT**:
-
-1. **Make architecture decisions**: Follows plan and design docs
-2. **Skip validation**: Always runs tests
-3. **Hide errors**: Surfaces failures immediately
-4. **Bypass hooks**: Always runs pre-commit (from CLAUDE.md)
-
----
-
-## Aggregation Files
-
-When a task reaches 100% completion, remind the user to update these project-level files:
-
-| File | Purpose | What to Update |
-|------|---------|----------------|
-| `project.md` | Dashboard | Move task to "Recently Completed", update "Active Work" |
-| `docs/plan/01-roadmap.md` | Big picture | Update task status, phase completion % |
-| `docs/tasks/README.md` | Blockers | Update blockers, mark unblocked tasks as ready |
-
-These files provide high-level project visibility and should be kept in sync with task completion.
+The board is not updated here. `/project:sync <task-id> --complete` owns
+`project.md`, and it runs after the PR merges, not when implementation reaches
+100%. Marking a task done on the strength of a green plan file is how a merged
+PR gets recorded as a working feature.
