@@ -171,8 +171,18 @@ every finalize commit.
 # Add design document
 git add docs/designs/rec-XX-[description].md
 
-# Add every review this task produced, whichever backend wrote them
-git add docs/reviews/rec-XX-review-*.md 2>/dev/null || true
+# Add every review this task produced, whichever backend wrote them.
+# Do not suppress errors here. "no reviews were written" and "git add failed"
+# are different problems, and only the first one is acceptable.
+shopt -s nullglob
+reviews=(docs/reviews/rec-XX-review-*.md)
+shopt -u nullglob
+
+if [ ${#reviews[@]} -eq 0 ]; then
+  echo "No review files found for rec-XX; finalizing without them"
+else
+  git add "${reviews[@]}"
+fi
 
 git commit -m "$(cat <<'EOF'
 docs(REC-XX): finalize design document

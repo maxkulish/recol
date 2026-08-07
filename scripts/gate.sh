@@ -25,6 +25,14 @@
 
 set -uo pipefail
 
+# Nothing below needs bash 4. That is deliberate: macOS ships 3.2 and hosted
+# macOS runners resolve `env bash` to it, so a bash-4 construct anywhere here
+# would make the gate unrunnable on exactly the CI that R0-07 adds.
+if ! command -v git >/dev/null 2>&1; then
+  echo "gate: git is not installed; cannot locate the repository root" >&2
+  exit 2
+fi
+
 cd "$(git rev-parse --show-toplevel)" || exit 2
 
 task_id=""
@@ -51,15 +59,29 @@ record() {
 }
 
 # run <label> <command...>
+#
+# A missing tool is not a failing check. `cargo` absent means this layer could
+# not run, which is UNAVAILABLE and exit 2; mapping it to FAIL would report an
+# environment problem as a code problem, and the whole point of the exit-2 state
+# is that those two are not the same answer.
 run() {
   local label="$1"
   shift
+  local exe="$1"
+
+  if ! command -v "$exe" >/dev/null 2>&1; then
+    printf '\n--- %s: %s\n%s: not installed\n' "$label" "$*" "$exe" >&2
+    record "$label" UNAVAILABLE "$exe not installed"
+    return
+  fi
+
   printf '\n--- %s: %s\n' "$label" "$*"
   local status=0
   "$@" || status=$?
   case "$status" in
-    0) record "$label" PASS ;;
-    *) record "$label" FAIL "exit $status" ;;
+    0)       record "$label" PASS ;;
+    126|127) record "$label" UNAVAILABLE "$exe could not be executed (exit $status)" ;;
+    *)       record "$label" FAIL "exit $status" ;;
   esac
 }
 
@@ -68,6 +90,13 @@ yaml_sweep() {
   local label="$1"
   shift
   printf '\n--- %s: yaml.safe_load %s\n' "$label" "$*"
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is not installed; cannot verify YAML" >&2
+    record "$label" UNAVAILABLE "python3 not installed"
+    return
+  fi
+
   local status=0
   python3 - "$@" <<'PY' || status=$?
 import glob
@@ -95,9 +124,10 @@ print(f"parsed {seen - bad}/{seen} file(s)")
 sys.exit(1 if bad else 0)
 PY
   case "$status" in
-    0) record "$label" PASS ;;
-    3) record "$label" UNAVAILABLE "pyyaml missing" ;;
-    *) record "$label" FAIL "unparseable file(s)" ;;
+    0)       record "$label" PASS ;;
+    3)       record "$label" UNAVAILABLE "pyyaml missing" ;;
+    126|127) record "$label" UNAVAILABLE "python3 could not be executed (exit $status)" ;;
+    *)       record "$label" FAIL "unparseable file(s)" ;;
   esac
 }
 
@@ -105,19 +135,48 @@ PY
 # are stated in prose ("returns nothing", "fails for every path"), which is what
 # makes them good criteria and bad shell. Print them so nobody forgets they are
 # part of the gate.
+#
+# The reading and counting is pure bash rather than awk and grep. This is the
+# layer that reports what is missing, so it must not go quiet when something is
+# missing: an absent `grep` used to leave the count blank while the layer still
+# claimed MANUAL.
 if [ -n "$task_id" ]; then
-  slug="$(printf '%s' "$task_id" | tr '[:upper:]' '[:lower:]')"
+  slug=""
+  if command -v tr >/dev/null 2>&1; then
+    slug="$(printf '%s' "$task_id" | tr 'A-Z' 'a-z')"
+  elif [ "${BASH_VERSINFO[0]:-0}" -ge 4 ]; then
+    slug="${task_id,,}"
+  else
+    record "L1 acceptance" UNAVAILABLE "cannot lowercase the task id: no tr, bash < 4"
+    echo "gate: neither tr nor bash 4 available to normalise '$task_id'" >&2
+  fi
+
   task_file=""
-  for candidate in docs/tasks/"$slug"-*.md; do
+  for candidate in ${slug:+docs/tasks/"$slug"-*.md}; do
     [ -f "$candidate" ] && task_file="$candidate" && break
   done
 
-  if [ -z "$task_file" ]; then
+  if [ -z "$slug" ]; then
+    : # already recorded UNAVAILABLE above
+  elif [ -z "$task_file" ]; then
     record "L1 acceptance" UNAVAILABLE "no docs/tasks/$slug-*.md"
     echo "gate: no task file matches docs/tasks/$slug-*.md" >&2
   else
-    criteria="$(awk '/^## Acceptance criteria/{f=1;next} /^## /{f=0} f' "$task_file")"
-    count="$(printf '%s\n' "$criteria" | grep -c '^- \[' || true)"
+    criteria=""
+    count=0
+    in_section=0
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        '## Acceptance criteria'*) in_section=1; continue ;;
+        '## '*)                    in_section=0 ;;
+      esac
+      if [ "$in_section" -eq 1 ]; then
+        criteria+="$line"$'\n'
+        case "$line" in
+          '- ['*) count=$((count + 1)) ;;
+        esac
+      fi
+    done < "$task_file"
     printf '\n--- L1 acceptance: %s\n%s\n' "$task_file" "$criteria"
     if [ "$count" -eq 0 ]; then
       record "L1 acceptance" UNAVAILABLE "no criteria found in $task_file"

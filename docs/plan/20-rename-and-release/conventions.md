@@ -32,11 +32,18 @@ because the only grader the phase file would accept was `.lok/workflows/`, which
 this repository does not have. An absent optional reviewer had been wired to
 mean an absent gate.
 
-### G2 - `UNAVAILABLE` never reads as `PASS`
+### G2 - `UNAVAILABLE` never reads as `PASS`, and never as `FAIL` either
 
 `scripts/gate.sh` exits `2`, not `0`, when a layer cannot run - no cargo, no
-pyyaml, no task file to read criteria from. Fix the environment; do not
-interpret the silence.
+python3, no pyyaml, no task file to read criteria from. Fix the environment; do
+not interpret the silence.
+
+Exit `1` is a different answer. `FAIL` means the code is wrong; `UNAVAILABLE`
+means the gate is. Collapsing them sends you to read a diff when the real
+problem is a missing toolchain, and it lets an environment gap masquerade as a
+finding. The layer that reports what is missing therefore shells out to as
+little as possible: L1 reads and counts in pure bash, because an absent `grep`
+once left its count blank while it still claimed `MANUAL`.
 
 ### G3 - Re-run the whole gate after a fix, not the failing layer
 
@@ -84,20 +91,42 @@ full tier passes.
 
 | Layer | Seeded defect | Expected | Observed |
 |---|---|---|---|
-| L1 | `--task R9-99`, no such task file | exit 2, INCOMPLETE | exit 2, `L1 acceptance UNAVAILABLE no docs/tasks/r9-99-*.md` |
-| L2 fmt | Misformatted fn appended to `src/atomic_file.rs` | exit 1, fmt FAIL only | exit 1, `L2 fmt FAIL exit 1`, `L2 check PASS` |
-| L2 check | `fn ... -> u8 { "not a u8" }` | exit 1, check FAIL only | exit 1, `L2 check FAIL exit 101`, `L2 fmt PASS` |
-| L2 test | `assert_eq!(1, 2)` in a new test module | exit 1, test FAIL only | exit 1, `L2 test FAIL exit 101`, `L2 fmt PASS`, `L2 check PASS` |
-| L3 | `docs/status/zz-negative-validation.yaml` with an unclosed flow sequence | exit 1, yaml-status FAIL | exit 1, `L3 yaml-status FAIL unparseable file(s)`, `ParserError: while parsing a flow sequence` |
+**Defects the gate must call FAIL** (exit 1 - the code is wrong):
 
-Two of these matter more than the others. The L3 row is the R0-01 incident
-reproduced on purpose: a workflow state file that did not parse while every
-local check was green. The L1 row proves the `INCOMPLETE` path, which is the
-distinction between "the gate says no" and "there was no gate".
+| Layer | Seeded defect | Observed |
+|---|---|---|
+| L2 fmt | Misformatted fn appended to `src/atomic_file.rs` | exit 1, `L2 fmt FAIL exit 1`, `L2 check PASS` |
+| L2 check | `fn ... -> u8 { "not a u8" }` | exit 1, `L2 check FAIL exit 101`, `L2 fmt PASS` |
+| L2 test | `assert_eq!(1, 2)` in a new test module | exit 1, `L2 test FAIL exit 101`, fmt and check PASS |
+| L3 | `docs/status/zz-negative-validation.yaml` with an unclosed flow sequence | exit 1, `L3 yaml-status FAIL unparseable file(s)`, `ParserError` naming the file |
 
-Not validated: the `pyyaml missing` branch, which reports `UNAVAILABLE` on
-import failure. Simulating it means breaking the interpreter, so it is read code
-rather than exercised code. Treat that one line with the suspicion it deserves.
+**Environments the gate must call UNAVAILABLE** (exit 2 - the gate is wrong):
+
+| Missing | Seeded by | Observed |
+|---|---|---|
+| The task file | `--task R9-99` | exit 2, `L1 acceptance UNAVAILABLE no docs/tasks/r9-99-*.md` |
+| `cargo` | `PATH` without `~/.cargo/bin` | exit 2, `L2 fmt/check UNAVAILABLE cargo not installed`, `L3 PASS` |
+| `python3` | curated `PATH` with cargo but no python3 | exit 2, `L3 UNAVAILABLE python3 not installed`, `L2 fmt PASS` |
+| `pyyaml` | `PATH=/usr/bin:/bin:~/.cargo/bin`, so macOS system python3 | exit 2, `L3 UNAVAILABLE pyyaml missing`, `L2 fmt PASS` |
+
+Both halves matter, and the second half is the one that is easy to skip. The L3
+FAIL row is the R0-01 incident reproduced on purpose: a state file that did not
+parse while every local check was green. The UNAVAILABLE rows are the other half
+of the same idea - a missing toolchain must not be reported as a code defect,
+and must never be reported as a pass. Each row also shows the *other* layers
+still reporting their own result, so one unavailable layer cannot mask another.
+
+The four UNAVAILABLE rows exist because Qodo found the first of them on PR #2:
+`run()` mapped every non-zero exit to FAIL, so a missing `cargo` came back as
+`FAIL exit 127` and exit 1. The contract in G2 said exit 2. The code and the
+rulebook disagreed and only the rulebook had been checked.
+
+### The gate runs under bash 3.2
+
+Verified by invoking it with `/bin/bash` as well as the default `bash` 5.
+Nothing in `scripts/gate.sh` uses a bash-4 construct, deliberately: macOS ships
+3.2 and `/usr/bin/env bash` resolves to it on hosted macOS runners, so one
+`${var,,}` would make the gate unrunnable on exactly the CI R0-07 adds.
 
 ---
 
