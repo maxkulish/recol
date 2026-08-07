@@ -66,6 +66,10 @@ contribute those.
   transcripts into the curation pipeline.
 - `20-rename-and-release/` - R0: rename to recol, rebuild CI, and narrow
   distribution to GitHub Releases and a Homebrew tap. Sequenced first.
+- `30-command-suite-adaptation.md` - adapt `.claude/commands/` to the 2026-08
+  migration guidance: rebuild the referee, make the R0 file-based track
+  first-class, rightsize the suite. Tooling, not product; single file until
+  work starts.
 
 ## Source material
 
