@@ -620,318 +620,14 @@ Your choice:
 
 ---
 
-## AI Code Review: gemini-code-assist
+## AI Code Reviewers
 
-When `gemini-code-assist` is configured on the repository, it automatically reviews PRs and leaves inline comments with code suggestions.
+Steps 3 through 9 are the whole cycle for every bot: fetch, categorize, fix,
+commit, push, reply. The bots differ in three things only - where their findings
+live, how you address them, and what makes them re-check. Everything below is
+those differences. Nothing here repeats the cycle.
 
-### Fetching gemini-code-assist Comments
-
-**Get all comments from gemini-code-assist**:
-
-```bash
-# Fetch comments filtered by user
-gh api repos/{owner}/{repo}/pulls/[number]/comments \
-  --jq '.[] | select(.user.login == "gemini-code-assist") | {id, path, line, body}'
-```
-
-**Example output**:
-```json
-{
-  "id": 2707454116,
-  "path": "src/backend/claude.rs",
-  "line": 50,
-  "body": "**Severity**: high\n\nConsider using serde's tagged enum..."
-}
-```
-
-### Understanding gemini-code-assist Severity Levels
-
-| Severity | Priority | Action |
-|----------|----------|--------|
-| `high` | Must fix | Address before merge |
-| `medium` | Should fix | Strongly recommended |
-| `low` | Optional | Nice to have |
-
-**Parse severity from comment body**:
-- Look for `**Severity**: high/medium/low` pattern
-- Comments without severity default to `medium`
-
-### Workflow for gemini-code-assist Feedback
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              gemini-code-assist Review Cycle                    │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Fetch comments from gemini-code-assist                      │
-│  2. Categorize by severity (high → medium → low)                │
-│  3. Address issues (code changes)                               │
-│  4. Commit fixes with descriptive message                       │
-│  5. Push changes to branch                                      │
-│  6. Reply to EACH comment with fix details + /gemini review     │
-│  7. Gemini re-validates the changes automatically               │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Step-by-Step: Address gemini-code-assist Feedback
-
-#### 1. Fetch and Display Comments
-
-```bash
-# Get all gemini-code-assist comments with details
-gh api repos/{owner}/{repo}/pulls/[number]/comments \
-  --jq '.[] | select(.user.login == "gemini-code-assist") | {
-    id: .id,
-    file: .path,
-    line: .original_line,
-    body: .body
-  }'
-```
-
-#### 2. Analyze Each Comment
-
-For each comment, identify:
-- **File**: Which file needs changes
-- **Line**: The specific line referenced
-- **Issue**: What problem gemini found
-- **Suggestion**: The recommended fix
-
-#### 3. Make Code Changes
-
-Address all issues, then commit:
-
-```bash
-git add [modified files]
-git commit -m "$(cat <<'EOF'
-fix(REC-XX): address gemini-code-assist review feedback
-
-- src/audio/error.rs: Use tagged enum serialization
-- docs/designs: Fix documentation inconsistency
-- src/audio/capture.rs: Optimize memory allocation
-
-Resolves gemini-code-assist comments
-EOF
-)"
-```
-
-#### 4. Push Changes
-
-```bash
-git push origin feat/rec-XX-description
-```
-
-#### 5. Reply to Each Comment with Re-validation Trigger
-
-**CRITICAL**: After pushing fixes, reply to EACH comment explaining the fix AND include `/gemini review` to trigger re-validation.
-
-```bash
-# Reply to comment explaining the fix
-gh api repos/{owner}/{repo}/pulls/[number]/comments/[comment_id]/replies \
-  -X POST -f body="Fixed in [commit SHA]. [Brief explanation of change]
-
-/gemini review"
-```
-
-**Example replies by severity**:
-
-| Severity | Reply Template |
-|----------|----------------|
-| High | `"Fixed in abc1234. Changed to use #[serde(tag = \"type\")] for proper tagged enum serialization.\n\n/gemini review"` |
-| Medium | `"Fixed in abc1234. Updated documentation to match implementation (SincFixedIn, not FftFixedIn).\n\n/gemini review"` |
-| Medium | `"Fixed in abc1234. Added reusable buffer to eliminate per-call allocation.\n\n/gemini review"` |
-| Low | `"Good suggestion. Implemented in abc1234.\n\n/gemini review"` |
-
-### Batch Reply Script
-
-When addressing multiple gemini-code-assist comments:
-
-```bash
-# Store comment IDs and their fix descriptions
-COMMENTS=(
-  "2707454116|Fixed AudioError serialization with tagged enum"
-  "2707454125|Updated docs to reference SincFixedIn"
-  "2707454129|Added reusable drain_buffer to avoid allocation"
-)
-
-COMMIT_SHA=$(git rev-parse --short HEAD)
-
-for item in "${COMMENTS[@]}"; do
-  ID="${item%%|*}"
-  MSG="${item#*|}"
-
-  gh api repos/{owner}/{repo}/pulls/[number]/comments/${ID}/replies \
-    -X POST -f body="Fixed in ${COMMIT_SHA}. ${MSG}
-
-/gemini review"
-done
-```
-
-### What `/gemini review` Does
-
-When you include `/gemini review` in a comment reply:
-
-1. **Triggers Re-analysis**: Gemini re-reads the updated files
-2. **Validates Fixes**: Checks if your changes address the original concern
-3. **Updates Status**: May mark the conversation as resolved
-4. **Posts Follow-up**: If issues remain, posts additional feedback
-
-### gemini-code-assist Summary Display
-
-```
-========================================
-GEMINI-CODE-ASSIST REVIEW: REC-XX
-========================================
-
-PR #[number]: [title]
-
-Comments Found: 3
-
-HIGH PRIORITY:
-1. [ID: 2707454116] src/audio/error.rs:50
-   "Consider using serde's tagged enum..."
-   Status: Needs fix
-
-MEDIUM PRIORITY:
-2. [ID: 2707454125] docs/designs/rec-47-audio-capture.md:142
-   "Documentation says FftFixedIn but code uses SincFixedIn"
-   Status: Needs fix
-
-3. [ID: 2707454129] src/audio/capture.rs:132
-   "drain_to_storage allocates Vec on each call"
-   Status: Needs fix
-
----
-
-Options:
-1. [address-all] - Fix all issues
-2. [address-high] - Fix high priority only
-3. [details ID] - Show full comment for specific ID
-4. [skip] - Skip for now
-
-Your choice:
-```
-
-### After Addressing All Feedback
-
-```
-========================================
-GEMINI-CODE-ASSIST FEEDBACK ADDRESSED
-========================================
-
-PR #[number]: [title]
-
-Issues Fixed: 3/3
-Commit: cfbcd70
-
-Replies Posted:
-- Comment 2707454116: ✓ (with /gemini review)
-- Comment 2707454125: ✓ (with /gemini review)
-- Comment 2707454129: ✓ (with /gemini review)
-
-Gemini will automatically re-validate the changes.
-
-Next steps:
-1. Wait for gemini re-review (~1-2 minutes)
-2. Check for new comments: /pr:review REC-XX
-3. After approval: merge or continue workflow
-```
-
----
-
-## AI Code Review: Qodo
-
-Qodo behaves differently from the other two reviewers in three ways that break the default workflow if ignored:
-
-1. **Findings live in one persistent comment.** Qodo rewrites a single PR-level comment on every push rather than posting a new one. Inline comments are published only for findings at or above `inline_comments_severity_threshold`.
-2. **Replies must address Qodo explicitly.** A reply that does not start with `@qodo` is not read, even inside a thread Qodo itself opened.
-3. **Resolution is inferred from the code, not from the reply.** Pushing a fix makes Qodo strike through the finding on its next run. The reply is for dismissals and for the audit trail.
-
-Repository configuration lives in `.pr_agent.toml` at the root of the default branch. It only applies to PRs opened after that file lands on the default branch.
-
-### Fetching Qodo Findings
-
-```bash
-# Inline findings (each has a thread, each needs a reply)
-gh api repos/{owner}/{repo}/pulls/[number]/comments --paginate \
-  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, path, line, body}'
-
-# The persistent summary comment (holds every finding, including those with no thread)
-gh api repos/{owner}/{repo}/issues/[number]/comments --paginate \
-  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, updated_at, body}'
-```
-
-The summary comment is long and mostly collapsed HTML. Read it for the finding list; do not paste it back to the user verbatim.
-
-### Reading the Summary Comment
-
-Qodo groups findings by priority, then labels each with a quality dimension.
-
-| Priority group | Severity | Maps to | Action |
-|----------------|----------|---------|--------|
-| Action Required | 3 | Blocking | Must fix before merge |
-| Review Recommended | 2 | Should fix | Fix or decline with rationale |
-| Informational | 1 | Optional | Acknowledge, fix if cheap |
-
-Finding categories: **Bugs**, **Rule violations** (from AGENTS.md / CLAUDE.md, which Qodo imports as rules), **Requirement gaps** (from the linked ticket), **Cross-repo conflicts**, **Skill insights**.
-
-Quality labels attached to a finding: `Correctness`, `Security`, `Reliability`, `Performance`, `Observability`.
-
-Two markers matter when re-reading after a push:
-
-- **⭐️ New** - raised by the latest run, not present before. Address these.
-- **Struck through** - Qodo considers it resolved by your changes. Do not re-fix, do not reply.
-
-A **Previous review results** section holds earlier runs. Ignore it unless auditing history - findings there are superseded by the current list.
-
-### Rule Violations Are Not Style Nits
-
-A `Rule violation` finding means the diff contradicts a rule Qodo imported from this repo's own `AGENTS.md` or `CLAUDE.md`. Treat it as blocking regardless of the priority group Qodo assigned, or fix the rule file if the rule is genuinely wrong. Do not decline it as a matter of taste.
-
-### Workflow for Qodo Feedback
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Qodo Review Cycle                           │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Confirm Qodo has commented (QODO_BOT non-empty)             │
-│  2. Fetch inline comments AND the persistent summary comment    │
-│  3. Drop struck-through findings (already resolved)             │
-│  4. Order: Action Required -> Review Recommended -> Info        │
-│  5. Fix, commit, push                                           │
-│  6. Qodo auto re-reviews on push (handle_push_trigger = true)   │
-│  7. Reply "@qodo ..." to each inline thread                     │
-│  8. Post one "@qodo ..." PR comment for summary-only findings   │
-│  9. Re-read the updated summary comment for ⭐️ New findings     │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Asking Qodo to Fix or Dismiss
-
-Qodo accepts natural language once addressed. Both forms are useful during review:
-
-```bash
-# Dismiss a finding you are declining, in its own thread
-gh api repos/{owner}/{repo}/pulls/[number]/comments/[comment_id]/replies \
-  -X POST -f body="@qodo Intentional: the allocation is per-request and bounded by MAX_BATCH. Please dismiss this finding."
-
-# Ask a question about a finding you do not understand
-gh pr comment [number] --body "@qodo Which rule does finding 3 come from, and where is it defined?"
-```
-
-Asking Qodo to fix something (`@qodo fix the null pointer issue`) makes it open a **separate PR** with proposed changes rather than committing to the current branch. Do not use it inside this workflow - it fragments the change across two PRs. Fix the code directly instead.
-
-### Manual Re-review Trigger
-
-With `handle_push_trigger = true` no trigger comment is needed. If push-triggered review is off, or a re-review is needed without a new commit:
-
-```bash
-gh pr comment [number] --body "/agentic_review"
-```
-
-Qodo acknowledges with a 👀 reaction. Other supported commands: `/agentic_describe`, `/ask`, `/config` (prints the effective configuration, useful for debugging why a finding did or did not appear), `/generate_labels`, `/checks`.
-
-Note that `/review` and `/improve` are legacy Qodo Merge v1 commands. On a current install they do nothing.
-
-### Reviewer Comparison
+### Reviewer comparison
 
 | Aspect | Qodo | gemini-code-assist | copilot-pull-request-reviewer |
 |--------|------|--------------------|-------------------------------|
@@ -942,78 +638,177 @@ Note that `/review` and `/improve` are legacy Qodo Merge v1 commands. On a curre
 | Resolution marker | Strikethrough on next run | Thread resolution | Thread resolution |
 | Repo config | `.pr_agent.toml` on default branch | `.gemini/config.yaml` | Repo settings |
 
-### Qodo Summary Display
+### Fetching
+
+Inline comments come from the same endpoint for all three; only the login filter
+changes. Match Qodo by regex - the app has shipped as `qodo-ai[bot]`,
+`qodo-merge-pro[bot]`, and `codiumai-pr-agent-pro[bot]` across migrations, and
+`gh api` supports `--jq` but not jq's `--arg`, so a shell variable cannot be
+interpolated into the filter safely.
+
+```bash
+PR=[number]
+
+# Qodo - inline
+gh api repos/{owner}/{repo}/pulls/$PR/comments --paginate \
+  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, path, line, body}'
+
+# Qodo - the persistent summary comment, which holds findings that have no thread
+gh api repos/{owner}/{repo}/issues/$PR/comments --paginate \
+  --jq '.[] | select(.user.login | ascii_downcase | test("qodo")) | {id, updated_at, body}'
+
+# gemini-code-assist
+gh api repos/{owner}/{repo}/pulls/$PR/comments --paginate \
+  --jq '.[] | select(.user.login == "gemini-code-assist") | {id, path, line, body}'
+
+# copilot
+gh api repos/{owner}/{repo}/pulls/$PR/comments --paginate \
+  --jq '.[] | select(.user.login == "copilot-pull-request-reviewer") | {id, path, line, body}'
+```
+
+**Fetching only `pulls/$PR/comments` silently drops findings.** Qodo publishes
+inline comments only at or above `inline_comments_severity_threshold`; everything
+below it exists in the summary comment alone, with no signal that you missed it.
+
+---
+
+### Qodo
+
+Three deviations break the default workflow if ignored:
+
+1. **Findings live in one persistent comment.** Qodo rewrites a single PR-level
+   comment on every push rather than posting a new one.
+2. **Replies must address Qodo explicitly.** A reply that does not start with
+   `@qodo` is not read, even inside a thread Qodo itself opened.
+3. **Resolution is inferred from the code, not the reply.** Pushing a fix makes
+   Qodo strike the finding through on its next run. The reply is for dismissals
+   and for the audit trail.
+
+Repository configuration lives in `.pr_agent.toml` at the root of the default
+branch, and applies only to PRs opened after that file lands there.
+
+**Reading the summary comment.** It is long and mostly collapsed HTML: read it
+for the finding list, do not paste it back to the user. Findings are grouped by
+priority, then labelled with a quality dimension.
+
+| Priority group | Severity | Maps to | Action |
+|----------------|----------|---------|--------|
+| Action Required | 3 | Blocking | Must fix before merge |
+| Review Recommended | 2 | Should fix | Fix or decline with rationale |
+| Informational | 1 | Optional | Acknowledge, fix if cheap |
+
+Finding categories: **Bugs**, **Rule violations** (from `AGENTS.md` / `CLAUDE.md`,
+which Qodo imports as rules), **Requirement gaps** (from the linked ticket),
+**Cross-repo conflicts**, **Skill insights**. Quality labels: `Correctness`,
+`Security`, `Reliability`, `Performance`, `Observability`.
+
+Two markers matter on a re-read after pushing:
+
+- **⭐️ New** - raised by the latest run. Address these.
+- **Struck through** - Qodo considers it resolved. Do not re-fix, do not reply.
+
+A **Previous review results** section holds earlier runs. Ignore it unless
+auditing history; those findings are superseded by the current list.
+
+**A `Rule violation` is not a style nit.** It means the diff contradicts a rule
+Qodo imported from this repo's own `AGENTS.md` or `CLAUDE.md`. Treat it as
+blocking whatever priority group it landed in, or fix the rule file if the rule
+is genuinely wrong. Do not decline it as a matter of taste.
+
+**Dismissing and asking:**
+
+```bash
+# Decline a finding, in its own thread
+gh api repos/{owner}/{repo}/pulls/$PR/comments/[comment_id]/replies \
+  -X POST -f body="@qodo Intentional: the allocation is per-request and bounded by MAX_BATCH. Please dismiss this finding."
+
+# Ask about a finding you do not understand
+gh pr comment $PR --body "@qodo Which rule does finding 3 come from, and where is it defined?"
+```
+
+Do **not** use `@qodo fix ...` inside this workflow: it opens a *separate PR*
+with proposed changes rather than committing to the current branch, fragmenting
+one change across two PRs. Fix the code directly.
+
+**Manual re-review.** With `handle_push_trigger = true` no trigger is needed.
+Otherwise `gh pr comment $PR --body "/agentic_review"`; Qodo acknowledges with
+👀. Also supported: `/agentic_describe`, `/ask`, `/config` (prints the effective
+configuration, useful for debugging why a finding did or did not appear),
+`/generate_labels`, `/checks`. `/review` and `/improve` are legacy Qodo Merge v1
+commands and do nothing on a current install.
+
+---
+
+### gemini-code-assist
+
+Parse `**Severity**: high/medium/low` from the comment body; a comment without
+one is `medium`.
+
+| Severity | Action |
+|----------|--------|
+| `high` | Address before merge |
+| `medium` | Strongly recommended |
+| `low` | Nice to have |
+
+**Every reply must end with `/gemini review`.** That is what makes Gemini
+re-read the updated files, check whether the change addresses its concern, and
+either resolve the thread or post follow-up. A reply without it leaves the
+thread open forever.
+
+```bash
+COMMIT=$(git rev-parse --short HEAD)
+gh api repos/{owner}/{repo}/pulls/$PR/comments/[comment_id]/replies \
+  -X POST -f body="Fixed in ${COMMIT}. [what changed and why it addresses the finding]
+
+/gemini review"
+```
+
+### copilot-pull-request-reviewer
+
+No severity levels - treat everything as medium. No trigger suffix; it
+re-reviews automatically on push. Otherwise identical to any other inline
+comment.
+
+---
+
+### Review summary display
+
+One format for all three. Fill `Reviewer` and the grouping from the table above -
+priority groups for Qodo, severity for Gemini, a single group for copilot.
 
 ```
 ========================================
-QODO REVIEW: REC-XX
+[REVIEWER] REVIEW: [task-id]
 ========================================
 
 PR #[number]: [title]
-Reviewer: qodo-ai[bot]
-Summary comment last updated: [timestamp]
+Reviewer: [bot login]
+Summary comment last updated: [timestamp, Qodo only]
 
-Findings: 5 open (2 struck through as resolved)
+Findings: [N] open ([M] struck through as resolved)
 
-ACTION REQUIRED:
-1. [inline #2707454116] src/audio/error.rs:50  [Correctness]
-   "AudioError variants serialize untagged, callers cannot discriminate"
+[GROUP - e.g. ACTION REQUIRED / HIGH PRIORITY]:
+1. [inline #<id> | summary-only] <path>:<line>  [quality label]
+   "<the finding, one line>"
    Status: Needs fix
 
-2. [summary-only] Rule violation - AGENTS.md Core Rules  [Reliability]
-   "drain_to_storage returns Ok(()) when the write fails"
-   Status: Needs fix
-
-REVIEW RECOMMENDED:
-3. [inline #2707454129] src/audio/capture.rs:132  [Performance]
-   "drain_to_storage allocates a Vec on each call"
-   Status: Needs fix
-
-INFORMATIONAL:
-4. [summary-only] docs/designs/rec-47-audio-capture.md:142
-   "Doc says FftFixedIn, code uses SincFixedIn"
-   Status: Needs fix
+[NEXT GROUP]:
+2. ...
 
 ---
 
 Options:
-1. [address-all] - Fix all findings
-2. [address-required] - Action Required only
-3. [details N] - Show full finding N
-4. [skip] - Skip for now
+1. [address-all]      - Fix all findings
+2. [address-blocking] - Highest group only
+3. [details N]        - Show full finding N
+4. [skip]             - Skip for now
 
 Your choice:
 ```
 
----
-
-## AI Code Review: copilot-pull-request-reviewer
-
-When GitHub Copilot is configured as a PR reviewer, it leaves inline code suggestions similar to gemini-code-assist but without severity levels.
-
-### Fetching copilot Comments
-
-```bash
-gh api repos/{owner}/{repo}/pulls/[number]/comments --paginate \
-  --jq '.[] | select(.user.login == "copilot-pull-request-reviewer") | {id, path, line, body}'
-```
-
-### Key Differences from gemini-code-assist
-
-| Aspect | gemini-code-assist | copilot-pull-request-reviewer |
-|--------|-------------------|-------------------------------|
-| Severity levels | Yes (`**Severity**: high/medium/low`) | No - treat all as medium |
-| Re-validation trigger | `/gemini review` in reply | None needed - auto re-reviews on push |
-| Suggestion format | Markdown with severity header | Markdown, often with code blocks |
-| Reply format | Must include `/gemini review` | Standard reply, no special suffix |
-
-### Handling copilot Feedback
-
-1. **Fetch comments** filtered by `copilot-pull-request-reviewer`
-2. **Treat all as medium priority** (no severity parsing needed)
-3. **Address issues** the same way as other review comments
-4. **Reply to each comment** with fix details (no `/gemini review` needed)
-5. Copilot automatically re-reviews when new commits are pushed
+Report `summary-only` findings explicitly. They have no thread to reply in, so
+Step 9b answers them in one PR-level comment; leaving them out of this display is
+how they get lost.
 
 ---
 

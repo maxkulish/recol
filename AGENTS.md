@@ -107,6 +107,19 @@ Before submission or when touching shared runtime behavior:
 cargo test
 ```
 
+For task work, run the gate instead of the individual commands. It is the
+referee `/task:orchestrate` grades against, so running it yourself means no
+surprises at the phase boundary:
+
+```bash
+scripts/gate.sh --task R0-02          # full tier, before the PR
+scripts/gate.sh --task R0-02 --quick  # per-task tier, defers cargo test
+```
+
+It exits `0` on pass, `1` on failure, and `2` when a check could not run at all
+- which is never a pass. It prints the task file's acceptance criteria but does
+not run them; those are yours.
+
 CI also runs:
 
 ```bash

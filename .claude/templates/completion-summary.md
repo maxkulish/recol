@@ -31,7 +31,7 @@ Every field below is read from `docs/status/rec-XX-workflow.yaml`. **Do not inve
 | Flagged suggestions | `len(phases.design.flagged_suggestions)` | `0` |
 | Plan file | `phases.plan.plan_file` | `(none)` |
 | Commits | `len(phases.implement.commits)` + first 7 chars of each SHA, comma-joined | `0` |
-| Validation verdicts | `phases.implement.codex_verdict` · `gemini_validation_report` presence · `validation_synthesis_verdict` | `(not run)` |
+| Gate verdicts | `gate.deterministic_verdict` · `gate.llm_layer` · the `## Verdict` line of the L4 synthesis report, if any | `(not run)` |
 | Fix passes | `phases.implement.validation_fix_iteration_count` | `0` |
 | Review threads resolved | `phases.pr.review_comment_threads_resolved` | `0` |
 | Reviews addressed flag | `phases.pr.reviews_addressed` → ✅ / ❌ | ❌ |
@@ -39,7 +39,7 @@ Every field below is read from `docs/status/rec-XX-workflow.yaml`. **Do not inve
 | Pre-merge re-fetch | `phases.pr.pre_merge_refetch_passed` → ✅ passed / ❌ failed / ⚠️ skipped | ⚠️ skipped |
 | Lessons file | `phases.complete.lessons_file` | omit Lessons block if empty |
 | Lessons list | `phases.complete.lessons_learned[]` (one bullet per item) | omit Lessons block if empty |
-| Aggregation files updated | `phases.complete.aggregation_files_updated` → ✅ / ❌ on each of the three files | ❌ on all three |
+| Board updated | `phases.complete.board_updated` → ✅ / ❌ | ❌ |
 | Footer phase / workflow / status | `workflow.current_phase` · `workflow.status` · derived (`✅ DONE` when both are `complete`, else `⚠️ IN PROGRESS`) | as observed |
 
 ---
@@ -54,7 +54,7 @@ Operational tasks (`task_type: operational`) often skip Design, Plan, and full I
 - **Pull Request** and **PR Review**: if no `pr_url` exists, omit both blocks entirely (no header, no `(skipped)` line) — operational tasks without code changes don't show PR sections at all.
 - **Lessons**: omit the whole block if `lessons_learned` is empty.
 
-The four mandatory blocks that always render regardless of task type: **Task**, **Discovery** (or skip line), **Aggregation Files**, **Footer**.
+The four mandatory blocks that always render regardless of task type: **Task**, **Discovery** (or skip line), **Board**, **Footer**.
 
 ---
 
@@ -89,13 +89,13 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
 📐 Design
    Document:     {{design_doc}}
    Assumptions:  {{n_surfaced}} surfaced → {{n_held}} held · {{n_violated}} violated · {{n_untested}} untested
-   Review:       Gemini → {{review_verdict}}
+   Review:       {{review_backend}} → {{review_verdict}}
    Suggestions:  {{n_applied}} applied · {{n_flagged}} flagged (deferred)
 
 ⚙️  Implementation
    Plan:         {{plan_file}}
    Commits:      {{n_commits}}  ({{commit_shorts}})
-   Validation:   Codex {{codex_verdict}} · Gemini {{gemini_verdict}} · Synthesis {{synthesis_verdict}}
+   Gate:         L1-L3 {{deterministic_verdict}} · L4 {{llm_layer}} → {{synthesis_verdict}}
    Fix passes:   {{validation_fix_iteration_count}}
 
 🛠️  Pull Request Review
@@ -108,10 +108,8 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
    • {{lesson_1}}
    • {{lesson_2}}
 
-📂 Aggregation Files
-   {{project_md_icon}} project.md
-   {{roadmap_md_icon}} docs/plan/01-roadmap.md
-   {{dependencies_md_icon}} docs/tasks/README.md
+📂 Board
+   {{board_icon}} project.md
 
 ───────────────────────────────────────────────────────────
  Phase: {{current_phase}} · Workflow: {{workflow_status}} · Status: {{final_status_icon}} {{final_status_word}}

@@ -1,14 +1,27 @@
 # /task:orchestrate - Complete Task Lifecycle Management
 
-**Purpose**: Orchestrate the complete lifecycle of a Linear task from design through PR merge. Manages workflow state, coordinates phase transitions, and ensures checkpoints for human validation.
+**Purpose**: Orchestrate the complete lifecycle of a task from design through PR merge. Manages workflow state, coordinates phase transitions, and ensures checkpoints for human validation.
 
-**Usage**:
-- `/task:orchestrate REC-XX` - Start or resume a task workflow
-- `/task:orchestrate REC-XX --status` - Show current workflow state only
-- `/task:orchestrate REC-XX --ops` - Start as operational task (skip design/plan)
-- `/task:orchestrate REC-XX --spec` - Start as specification task (use /spec instead of full design doc)
-- `/task:orchestrate REC-XX --skip-discovery` - Skip discovery phase (go straight to design)
+**Usage** (`<task>` is `R0-02` or `REC-9`; see the two tracks below):
+- `/task:orchestrate <task>` - Start or resume a task workflow
+- `/task:orchestrate <task> --status` - Show current workflow state only
+- `/task:orchestrate <task> --ops` - Start as operational task (skip design/plan)
+- `/task:orchestrate <task> --spec` - Start as specification task (use /spec instead of full design doc)
+- `/task:orchestrate <task> --skip-discovery` - Skip discovery phase (go straight to design)
 - `/task:orchestrate` - Interactive mode
+
+## Two task tracks
+
+| Ref shape | Track | Requirements live in |
+|---|---|---|
+| `R<n>-<nn>` | File-based | `docs/tasks/r<n>-<nn>-*.md` |
+| `REC-<n>` | Linear | The Linear issue |
+
+On the file-based track the task file **is** the spec: it already carries a
+Goal, a Scope checklist, and acceptance criteria written as runnable commands,
+so the spec phase has nothing left to author. `linear_url: null` is a valid
+state on that track, not a gap to explain. `phases/init.md` Step 2.4 holds the
+contract.
 
 ---
 
@@ -22,7 +35,7 @@ ENTRY -> EXECUTE -> DOCUMENT -> PR (conditional) -> COMPLETE         (operationa
                        BLOCKED (any phase)
 ```
 
-**State file**: `docs/status/rec-XX-workflow.yaml`
+**State file**: `docs/status/<task-id>-workflow.yaml` (the ref lowercased: `r0-02`, `rec-9`)
 **Phase instructions**: `.claude/commands/task/phases/{phase}.md`
 
 ---
@@ -55,7 +68,23 @@ ENTRY -> EXECUTE -> DOCUMENT -> PR (conditional) -> COMPLETE         (operationa
 
 **CRITICAL**: Before loading the next phase file, validate the outgoing phase.
 
-After a phase file signals completion by updating `workflow.current_phase`, re-read the YAML and verify the following minimum fields exist and are non-null:
+**Derive done-ness from disk, then reconcile the YAML to it.** The state file is
+an audit trail written by hand. It can be stale, half-written, or - as on R0-01 -
+unparseable while every other check is green. Disk cannot lie in the same way:
+
+| Question | Ask disk, not the YAML |
+|---|---|
+| Was a plan written? | the file at `plan.plan_file` exists |
+| Was code committed? | `git log --oneline main..<branch>` |
+| Does a PR exist, and in what state? | `gh pr view <n> --json state,mergedAt,url` |
+| Did the gate run? | the reports in `phases.implement.validation_reports` exist |
+| Does the state file even parse? | `python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))'` |
+
+Where disk and YAML disagree, disk wins and the YAML is corrected in place before
+the transition proceeds. Say which fields were corrected; a silent backfill hides
+the fact that a phase reported something that was not true.
+
+Then verify the following minimum fields exist and are non-null:
 
 ### Required Fields per Phase
 
@@ -65,7 +94,7 @@ After a phase file signals completion by updating `workflow.current_phase`, re-r
 | spec | `spec.status=complete`, `spec.spec_file`, `spec.approved=true`, `spec.review_completed` |
 | design | `design.status=complete`, `design.design_doc`, `design.draft_ready=true`, `design.finalized=true`, `design.review_completed` |
 | plan | `plan.status=complete`, `plan.plan_file`, `plan.approved=true` |
-| implement | `implement.status=complete` |
+| implement | `implement.status=complete`, `implement.gate_run=true`, `gate.deterministic_verdict`, `gate.llm_layer` (`none` is a valid value) |
 | pr | `pr.status=complete`, `pr.pr_url`, `pr.pr_number` |
 
 **Advisor checkpoint (when `advisor.enabled`):** for outgoing `plan` and `spec`,
@@ -83,12 +112,13 @@ must be resolved (`satisfied`, `exhausted`, `waived`, or `ungraded` - not `pendi
 
 1. **DO NOT** load the next phase file
 2. Display: `TRANSITION BLOCKED: Phase [X] is missing required fields: [list]`
-3. Fill the missing fields from available context:
-   - History entries (timestamps, details)
-   - File system (glob for design docs, plans, reviews)
-   - Git log (commit SHAs)
-   - GitHub CLI (`gh pr list/view` for PR data)
-4. Re-validate - only proceed when all required fields are present
+3. Fill each missing field from the disk evidence above, plus history entries for
+   timestamps. Record what you filled and from where.
+4. A field with no disk evidence behind it is not missing - it is **false**. Write
+   the false value and let the transition block on it. Inventing a plausible value
+   to unblock the workflow turns the state file into fiction, which is how R0-01
+   ended up carrying `skip_reason` prose for phases that had simply never run.
+5. Re-validate - only proceed when all required fields are present
 
 ---
 
@@ -105,13 +135,21 @@ keyed by checkpoint. A consult that is skipped or fails is recorded and never
 blocks a transition. The mechanics live in the phase files; orchestrate.md only
 dispatches.
 
-The `implement` phase Step 5 also runs a bounded **outcome loop**: it grades the
-diff with the existing Codex + Gemini gate (strictest of the two), and on FAIL it
-auto-dispatches a scoped fix and re-verifies up to `outcome.max_iterations`
-(default 3, cap 5; `0` disables) before the human menu. An unreachable grader
-resolves to `outcome.status: ungraded` and the human menu. Both are pattern-level
-adoptions of the Advisor tool and Managed Agents Outcomes - no API calls. The
-mechanics live in `phases/implement.md`; orchestrate.md only dispatches.
+The `implement` phase Step 5 also runs a bounded **outcome loop** around the
+**validation gate**. The gate has four layers: the task's acceptance criteria,
+`cargo fmt/check/test`, a `yaml.safe_load` sweep, and model review.
+`scripts/gate.sh` owns the middle two and exits `0`/`1`/`2` for
+PASS/FAIL/INCOMPLETE. On FAIL the loop auto-dispatches a scoped fix and re-runs
+the whole gate up to `outcome.max_iterations` (default 3, cap 5; `0` disables)
+before the human menu.
+
+Only an `INCOMPLETE` deterministic verdict - a binding layer that could not run -
+resolves to `outcome.status: ungraded`. A missing model-review backend does not:
+the first three layers still grade the work. Getting that distinction wrong is
+what left R0-01 ungraded with every local check green. Both loop and advisor are
+pattern-level adoptions of the Advisor tool and Managed Agents Outcomes - no API
+calls. The mechanics live in `phases/implement.md`; orchestrate.md only
+dispatches.
 
 ---
 
@@ -221,23 +259,3 @@ history:
 | `/pr:create` | PR (conditional) | Only if code changes |
 | `/pr:finalize` | Complete | Post-merge cleanup (if PR created) |
 | `/project:sync --complete` | Complete | Move to Recently Completed |
-
----
-
-## Philosophy
-
-**This orchestrator is designed to**:
-
-1. **Provide single entry point**: One command for entire task lifecycle
-2. **Enable resume capability**: Pick up where you left off
-3. **Ensure human checkpoints**: Validate at critical decision points
-4. **Maintain visibility**: Clear status at all times
-5. **Coordinate skills**: Chain existing skills intelligently
-6. **Track history**: Full audit trail of actions
-
-**This orchestrator does NOT**:
-
-1. **Make architectural decisions**: Uses design docs and plans
-2. **Skip validation**: Requires human approval at checkpoints
-3. **Force completion**: User can pause anytime
-4. **Hide state**: Everything persisted in YAML file

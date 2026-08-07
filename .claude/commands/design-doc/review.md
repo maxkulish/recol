@@ -64,18 +64,20 @@ TASK: Review the design document at: docs/designs/[DESIGN_DOC_FILENAME]
 
 Read these files to gather context:
 1. docs/designs/[DESIGN_DOC_FILENAME] — The design document to review
-2. docs/adr/ — Architecture documents (read all .md files in this directory)
-3. docs/adr/ — Architecture Decision Records (60+ files). List filenames first, then read ONLY the ADRs relevant to this design document's topic (typically 5-10 most relevant)
-4. docs/plan/01-roadmap.md — Current project phase and task status
-5. docs/tasks/README.md — Task dependency graph
-6. project.md — Active work and blockers
+2. docs/adr/ — Architecture Decision Records. There are few; read them all
+3. docs/plan/01-roadmap.md — Current project phase and task status
+4. docs/tasks/README.md — Executable tasks and their dependency ordering
+5. project.md — The board: what is done, what blocks what, what is next
+6. AGENTS.md — Repository commands and conventions
 
 If the design document references specific source files, read those too for validation.
 
 PROJECT CONTEXT:
-- This is a Rust crate (Cargo, edition 2021) named remem-ai - a local-first coding-agent memory system for Claude Code and OpenAI Codex; lib `remem`, bin `remem`
-- Linear workspace: cloud-ai
-- Issue prefix: REC
+- This is a Rust crate (Cargo, edition 2021) currently named `remem-ai`, a
+  local-first coding-agent memory system for Claude Code and OpenAI Codex;
+  lib `remem`, bin `remem`. R0-08 through R0-10 rename it to `recol`
+- Task tracking is file-based in docs/tasks/ (`R0-NN`). Some older work is in
+  Linear (workspace cloud-ai, prefix REC)
 
 REVIEW CRITERIA:
 
@@ -214,9 +216,14 @@ mkdir -p docs/reviews
 
 Construct the unified prompt (from the template above) by replacing `[DESIGN_DOC_FILENAME]` with the actual filename. **Both models get the same prompt.**
 
-### Step 6: Run AI reviews via lok
+### Step 6: Run AI reviews
 
-Run the lok design-review workflow. The workflow executes this pipeline:
+Use the first backend that is actually present. A design doc that no second
+reader ever saw is worse than a slow review, so this step never resolves to
+"skipped" while any backend remains.
+
+**Backend A - lok**, if `.lok/workflows/design-review.toml` exists in this repo.
+The workflow executes this pipeline:
 
 1. **Health check** (10s) - verifies Gemini CLI and Ollama are reachable. Unreachable models are skipped immediately instead of timing out after 300s.
 2. **Gemini review** (up to 300s) - runs primary model, falls back to `GEMINI_FALLBACK_MODEL` on empty output.
@@ -239,6 +246,28 @@ This produces:
 - `docs/reviews/rec-[XX]-review-ollama.md` (validated Ollama review or REVIEW_FAILED)
 - `docs/reviews/rec-[XX]-review-claude-fallback.md` (only if both external models failed)
 - `docs/reviews/rec-[XX]-review-synthesis.md` (cross-referenced synthesis with reviewer status)
+
+**Backend B - native fan-out**, when there is no `.lok/` in this repo. Dispatch
+two reviewer subagents with the `Agent` tool
+(`subagent_type: general-purpose`) in a single message so they run
+concurrently. Give each the design document, the context files from Step 3, and
+the unified prompt from Step 5, but assign each a different half of it:
+
+| Subagent | Prompt sections it answers |
+|---|---|
+| `review-architecture` | 1 Completeness, 2 Architecture, 3 ADR Compliance, 7 Verdict, 8 Actionable Feedback |
+| `review-risk` | 4 Security, 5 Implementation Concerns, 6 Blind Spots, 7 Verdict, 8 Actionable Feedback |
+
+Splitting the prompt rather than duplicating it is deliberate: two agents given
+the same prompt and the same model return the same review twice, which reads
+like agreement and is not. Write the results to
+`docs/reviews/rec-[XX]-review-architecture.md` and
+`docs/reviews/rec-[XX]-review-risk.md`; Step 8 synthesizes them exactly as it
+would the lok outputs.
+
+**Backend C - none**: nothing was reachable. Report `NO_REVIEWS_AVAILABLE` and
+say plainly at the checkpoint that the design is unreviewed. Never present an
+unreviewed design as reviewed.
 
 ### Step 7: Save Review Outputs
 
@@ -291,7 +320,7 @@ If `--persona` flag was provided, run additional domain-specific reviews. These 
 
 ### Step 8: Analyze All Reviews and Produce Synthesis
 
-After all reviews complete (Gemini + Ollama + optional personas), read all review files and produce a synthesis following the template at `.claude/templates/review-synthesis.md`:
+After every review from the Step 6 backend completes (plus optional personas), read all review files and produce a synthesis following the template at `.claude/templates/review-synthesis.md`. The synthesis does not care which backend produced the reviews:
 
 ```markdown
 ## Review Synthesis
@@ -308,9 +337,9 @@ After all reviews complete (Gemini + Ollama + optional personas), read all revie
 ### Persona Summary (if applicable)
 | Persona | Verdict | Key Finding |
 |---------|---------|-------------|
-| Audio Safety | [verdict] | [1-line summary] |
-| FFI Safety | [verdict] | [1-line summary] |
-| State Machine | [verdict] | [1-line summary] |
+| Security | [verdict] | [1-line summary] |
+| Concurrency | [verdict] | [1-line summary] |
+| Backend Integration | [verdict] | [1-line summary] |
 
 ### Consolidated Verdict
 [Apply consensus rules: ANY NEEDS_REVISION -> NEEDS_REVISION, all APPROVE -> APPROVE, else APPROVE_WITH_SUGGESTIONS]
@@ -393,7 +422,7 @@ For deeper diagnostics:
 - Gemini stderr: `/tmp/lok-gemini-stderr.log`
 - Ollama stderr: `/tmp/lok-ollama-stderr.log`
 
-**The `NO_REVIEWS_AVAILABLE` case should be rare.** The Claude fallback reviewer has no external dependencies - it reads files directly. If even the fallback fails, it indicates a problem with the lok pipeline itself, not network issues.
+**The `NO_REVIEWS_AVAILABLE` case should be rare.** Every fallback below lok has no external dependencies: the Claude fallback inside the workflow reads files directly, and Backend B's native fan-out needs nothing but the session's own `Agent` tool. Reaching `NO_REVIEWS_AVAILABLE` means the pipeline itself is broken, not that the network is down.
 
 ---
 
@@ -420,10 +449,15 @@ For deeper diagnostics:
 
 | File | Purpose | When created |
 |------|---------|--------------|
-| `docs/reviews/rec-XX-review-gemini.md` | Gemini AI review | Always (may contain REVIEW_FAILED) |
-| `docs/reviews/rec-XX-review-ollama.md` | Codex/Ollama AI review | Always (may contain REVIEW_FAILED) |
-| `docs/reviews/rec-XX-review-claude-fallback.md` | Claude fallback review | Only when both external models failed |
+| `docs/reviews/rec-XX-review-gemini.md` | Gemini AI review | Backend A (may contain REVIEW_FAILED) |
+| `docs/reviews/rec-XX-review-ollama.md` | Codex/Ollama AI review | Backend A (may contain REVIEW_FAILED) |
+| `docs/reviews/rec-XX-review-claude-fallback.md` | Claude fallback review | Backend A, only when both external models failed |
+| `docs/reviews/rec-XX-review-architecture.md` | Completeness, architecture, ADR compliance | Backend B |
+| `docs/reviews/rec-XX-review-risk.md` | Security, implementation concerns, blind spots | Backend B |
 | `docs/reviews/rec-XX-review-synthesis.md` | Cross-referenced synthesis with reviewer status | Always |
+
+Record whichever set was produced in `phases.design.review_reports`, and the
+backend in `phases.design.review_backend`.
 
 ---
 
@@ -444,7 +478,7 @@ Read these files to gather context:
 
 If the design document references specific source files, read those too.
 
-PROJECT CONTEXT: Rust crate remem-ai - local-first coding-agent memory for Claude Code and OpenAI Codex. Linear workspace: cloud-ai. Issue prefix: REC.
+PROJECT CONTEXT: Rust crate `remem-ai` (renamed to `recol` by R0-08..R0-10) - local-first coding-agent memory for Claude Code and OpenAI Codex. Tasks are file-based in docs/tasks/ (R0-NN); older work is in Linear (workspace cloud-ai, prefix REC).
 
 [... full review criteria and output format ...]"
 

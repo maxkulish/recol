@@ -1,6 +1,10 @@
 # 30 - Command suite adaptation to the 2026-08 migration guidance
 
-**Status**: Proposed (analysis complete 2026-08-07, not yet started)
+**Status**: Implemented 2026-08-07 on branch `chore/gate-contract`, one commit
+per step. Each step records below what came out different from the sketch, and
+the two verification criteria that needed correcting rather than passing.
+Not yet exercised on a real task: the first proof is running R0-02 through
+`/task:orchestrate`.
 **Scope**: `.claude/commands/`, `.claude/templates/workflow-state.yaml`, and how R0+ rounds run through them
 **Sources**: `~/Work/investigations/claude/guides/` at index 1.19.0 (2026-08-06), which absorbed
 [Anthropic - How Anthropic runs large-scale code migrations with Claude Code](https://claude.com/blog/ai-code-migration).
@@ -98,6 +102,16 @@ Guide 13 Part E rollout discipline.
 
 ### Step 1 - Rebuild the referee as a repo-level gate contract
 
+**Done.** `scripts/gate.sh` is the deterministic runner, the `gate:` block in
+`.claude/templates/workflow-state.yaml` is the contract, and the negative
+validation is recorded in
+[`20-rename-and-release/conventions.md`](20-rename-and-release/conventions.md).
+Two things came out different from the sketch below: the `INCOMPLETE` verdict
+(exit 2) had to exist so an unrunnable layer could never read as a pass, and the
+review fallback had to be extended to `design.md` as well, because generalizing
+`spec.md`'s reviewer fields alone would have left the design path pointing at
+filenames the native backend does not write.
+
 Do this before running R0-02 through the orchestrator.
 
 - Replace the hard lok dependency in `task/phases/implement.md` Step 5 with a
@@ -123,6 +137,15 @@ Do this before running R0-02 through the orchestrator.
 
 ### Step 2 - Make the file-based task track first-class
 
+**Done.** One thing was worse than the inventory said: `project/sync.md` did not
+merely lack R0-NN id parsing, it documented a `project.md` that does not exist
+here either - ASCII dependency trees with status emoji, a `WIP: n/5` counter,
+Linear epics. The real board is a `## Done` evidence table, a `## Next` prose
+argument, and one R0 table. Every validation and edit rule in the file had no
+target, so it was rewritten against the real shape rather than extended. The
+board had no in-progress status either; `doing` was added, which is the one
+change here to a document the human owns.
+
 - `task/phases/init.md`: a task ref matching `R\d+-\d+` resolves to
   `docs/tasks/r*-*.md` instead of Linear. The task file is the spec
   (formalizing R0-01's improvisation): `spec.spec_file` points at it,
@@ -145,6 +168,24 @@ Do this before running R0-02 through the orchestrator.
   findings amend it.
 
 ### Step 3 - Rightsize the suite
+
+**Done.** 7,076 lines to 6,543 across `.claude/commands/`, while adding the gate
+wiring, the two-track prelude, and the two-tier verification. The per-bot
+sections in `pr/review.md` collapsed from ~400 lines to ~170 by keeping only what
+differs between the three reviewers and deleting three restatements of the same
+fetch/fix/push/reply cycle.
+
+Both verification criteria below need correcting rather than reporting green:
+
+- The aggregation-file grep returns `project/sync.md` **and** `pr/finalize.md`.
+  Both are the historical note explaining that those three files never existed
+  here; finalize.md needed one for the same reason sync.md did. That is the
+  intended end state, not a miss.
+- `remem-ai` is not residue. It is the crate's actual name in `Cargo.toml`
+  today, and R0-08 through R0-10 are the tasks that rename it. Deleting an
+  accurate reference to satisfy a grep would have been the wrong move, so the
+  two occurrences stay, each now naming the task that will change them.
+  `src/audio` and `lok.toml` were genuine residue and are gone.
 
 - Fix the four broken seams: (a) resolved by Step 1; (b) correct the filename
   in `design-doc/finalize.md:168` to the synthesis report the review actually

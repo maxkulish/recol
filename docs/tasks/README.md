@@ -4,7 +4,13 @@ One file per task. Each is independently grabbable: it names its blockers, the
 verified code reality it depends on, and acceptance criteria you can run.
 
 Status lives in `project.md` at the repository root, not here. These files are
-the contract; that file is the board.
+the contract; that file is the board. The rules for working one - how the gate
+grades it, when to defer a defect rather than fix it, what counts as evidence -
+are in [`docs/plan/20-rename-and-release/conventions.md`](../plan/20-rename-and-release/conventions.md).
+
+`/task:orchestrate R0-NN` runs a task file end to end. It treats the file as the
+approved spec, so there is no spec phase to sit through; the acceptance criteria
+below become Layer 1 of the validation gate.
 
 ## Conventions
 

@@ -28,12 +28,11 @@ Your choice:
 
 ### Step 3: Sync Project Aggregation Files
 
-- **Invoke**: `/project:sync REC-XX --complete "Summary of what was accomplished"`
-- This automatically updates:
-  - PROJECT.md: Moves task from "Active Work" to "Recently Completed"
-  - ROADMAP.md: Changes task status to "Done", updates phase completion counts
-  - DEPENDENCIES.md: Removes blocking relationships, adds newly unblocked tasks
-- Update state: `phases.complete.aggregation_files_updated: true`
+- **Invoke**: `/project:sync <task-id> --complete "Summary of what was accomplished"`
+- That command owns `project.md`: the task's Status cell, the `## Done` row and
+  its evidence, which rows the completion unblocks, and the `## Next` prose if
+  the critical path moved. Do not edit the board here as well.
+- Update state: `phases.complete.board_updated: true`
 - Add history entry: `project_sync_complete`
 
 ### Step 4: Checkout Main
@@ -70,6 +69,6 @@ The footer line `Status: ✅ DONE` is the single authoritative completion signal
 ## YAML Checkpoint (Required before transition)
 
 Before marking workflow complete, verify:
-- `phases.complete.aggregation_files_updated: true`
+- `phases.complete.board_updated: true`
 - `phases.complete.merged_at` is set (non-null)
 - History contains `pr_merged`, `project_sync_complete`, and `workflow_complete`

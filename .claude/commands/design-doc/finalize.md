@@ -160,13 +160,28 @@ history:
 
 Commit the finalized design document and AI review (if exists):
 
+The review files are whichever ones the Step 6 backend produced - `-gemini`,
+`-ollama`, and `-claude-fallback` from lok, or `-architecture` and `-risk` from
+the native fan-out - plus the synthesis. Glob for them rather than naming one:
+an earlier version added `rec-XX-design-review.md`, a filename
+`/design-doc:review` has never written, so reviews were silently left out of
+every finalize commit.
+
 ```bash
 # Add design document
 git add docs/designs/rec-XX-[description].md
 
-# Add AI review if it exists
-if [ -f docs/reviews/rec-XX-design-review.md ]; then
-  git add docs/reviews/rec-XX-design-review.md
+# Add every review this task produced, whichever backend wrote them.
+# Do not suppress errors here. "no reviews were written" and "git add failed"
+# are different problems, and only the first one is acceptable.
+shopt -s nullglob
+reviews=(docs/reviews/rec-XX-review-*.md)
+shopt -u nullglob
+
+if [ ${#reviews[@]} -eq 0 ]; then
+  echo "No review files found for rec-XX; finalizing without them"
+else
+  git add "${reviews[@]}"
 fi
 
 git commit -m "$(cat <<'EOF'

@@ -11,11 +11,9 @@
 
 ## Project Context
 
-| Setting | Value |
-|---------|-------|
-| Linear Workspace | cloud-ai |
-| Issue Prefix | REC (e.g., REC-123) |
-| Branch Format | `{prefix}/rec-<number>-<short-desc>` (prefix: feat, fix, chore) |
+Read `.claude/templates/task-context.md` first: which task track the ref belongs
+to, where its requirements live, the branch convention, and how the work is
+verified. Nothing below repeats it.
 
 ---
 
@@ -212,9 +210,9 @@ Each criterion must be specific, measurable, and verifiable with a command or ex
 
 - [ ] [Criterion 1 — e.g., "`cargo test backend` passes with 0 failures"]
 - [ ] [Criterion 2 — e.g., "`cargo test` passes with new functionality"]
-- [ ] [Criterion 3 — e.g., "lok.toml config changes are backward compatible"]
+- [ ] [Criterion 3 — e.g., "`~/.remem/config.toml` changes are backward compatible"]
 
-**Verification method**: [How to run all criteria — e.g., `cargo test && cargo clippy`]
+**Verification method**: `scripts/gate.sh --task <task-id>` plus the criteria above, which the gate prints but does not run.
 
 ---
 
@@ -229,7 +227,7 @@ Measurable test cases proving the implementation is correct. Add these BEFORE st
 
 **Edge cases to cover**:
 - [e.g., what happens when LLM backend becomes unavailable mid-query?]
-- [e.g., what happens on config schema mismatch with existing lok.toml?]
+- [e.g., what happens on config schema mismatch with an existing `~/.remem/config.toml`?]
 
 ---
 
@@ -250,7 +248,7 @@ Measurable test cases proving the implementation is correct. Add these BEFORE st
 ## References
 
 - [Linear Task](https://linear.app/cloud-ai/issue/REC-XX)
-- [Architecture Document](../arch) (if exists)
+- [Architecture Document](../ARCHITECTURE.md)
 ```
 
 ### Step 5b: Fill in Constraints and Evaluation (REQUIRED)
@@ -416,36 +414,3 @@ Your choice:
 ```
 
 If continue: Generate template with placeholders for user to fill in.
-
----
-
-## Example Execution
-
-**User input**: `/design-doc:create rec-10`
-
-**Command execution**:
-
-1. Extract task: REC-10
-2. Fetch from Linear:
-   - Title: "Implement WebSocket Handler"
-   - Description: "Create WebSocket support for real-time communication..."
-3. Read architecture doc for context (if exists)
-4. Identify component: networking/websocket
-5. Generate short description: `websocket-handler`
-6. Create: `docs/designs/rec-10-websocket-handler.md`
-7. Post comment to Linear REC-10
-8. Create branch: `git checkout -b feat/rec-10-websocket-handler`
-9. Ask about status update
-10. Confirm: "SUCCESS: Design document created!"
-
----
-
-## Implementation Notes
-
-- Use `mcp__linear-server__get_issue` to fetch task details
-- Use `mcp__linear-server__list_comments` to get additional context
-- Use `Read` tool to read architecture documents
-- Use `Write` tool to create design document
-- Use `mcp__linear-server__save_comment` to post link
-- Use `Bash` with `mkdir -p` to create directories if needed
-- Follow branch naming: `feat/rec-XX-short-desc` (not `rec-XX-description`)
