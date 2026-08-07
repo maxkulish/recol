@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-08-07 (orchestrator gate landed, PR #2).
+Last updated: 2026-08-07 (R0-00 done, Actions running, PR #3).
 
 ## Done
 
@@ -20,39 +20,27 @@ Last updated: 2026-08-07 (orchestrator gate landed, PR #2).
 | `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
 | R0-01 preflight narrowed, merged | [PR #1](https://github.com/maxkulish/recol/pull/1) merged at `35129895`. All five acceptance criteria green: full preflight 15/15, `--fast` 9/9, `cargo test --workspace` 3144 passed. The three doomed checks are gone from the preflight and still invoked directly by `ci.yml`, so R0-02 can now delete them. Four Qodo findings were raised and fixed across three review rounds; the highest-severity one was a state file that did not parse as YAML while every local gate was green |
 | Orchestrator rebuilt around a real gate | [PR #2](https://github.com/maxkulish/recol/pull/2) merged at `fc29cfc3`, plan at `docs/plan/30-command-suite-adaptation.md`. R0-01 had finished `ungraded` because the only grader the commands accepted was `.lok/workflows/`, which this repo does not have. `scripts/gate.sh` now runs the deterministic layers and exits 0/1/2, where 2 means a layer could not run and is never a pass. Nine seeded defects prove it: four the gate must call FAIL, five environments it must call UNAVAILABLE. R0-NN task files are now first-class, so a task file is the spec and its acceptance criteria are gate layer L1. Qodo raised two Action Required findings, both real; the first was the gate contradicting its own rulebook, which is what added the UNAVAILABLE half of the validation |
+| R0-00: GitHub Actions actually running | [PR #3](https://github.com/maxkulish/recol/pull/3) merged at `4dc59c20`. The suppression was the fork-inherited gate, invisible to the API - `actions/permissions` reported `enabled: true` throughout - and a toggle of that same setting off and back on cleared it. All seven acceptance criteria verified: four hazardous workflows `disabled_manually` before enabling anything, two `pull_request` runs concluded red at the inherited "Resolve linked issue for classification" step, the merge `push` run concluded **green** in 26m50s, and `auto-release.yml` shows zero runs even though its trigger - CI completing on `main` - fired minutes after the disable |
 
-No CI, workflow, or GitHub setting has been changed. The first code change is
-R0-01, merged as PR #1.
-
-**GitHub Actions has never run on this repository.** `actions/runs` reports a
-total count of 0, and PR #1 produced no check runs, even though permissions are
-enabled and all six workflows report `active`. Any acceptance criterion of the
-form "CI passes on the pull request" is currently unsatisfiable - nothing fails,
-nothing runs. R0-04 must not be applied until this is resolved: it pins branch
-protection to a required status check by name, and a check that never reports
-blocks every merge to `main` permanently. Note also that a bare `gh run list` in
-a local checkout resolves to the `upstream` remote and shows majiayu000/remem's
-green history, which is easy to mistake for recol activity.
+**GitHub Actions now runs.** The suppression was the fork-inherited gate,
+invisible to the API and cleared on 2026-08-07 by toggling
+`repos/maxkulish/recol/actions/permissions` off and back on (details in the
+R0-00 task file). Acceptance criteria of the form "on a pull request, X runs"
+are satisfiable from here on. Two expectations hold until R0-02 and R0-05
+land: every **pull request** run is red - it dies at the inherited "Resolve
+linked issue for classification" step, unsatisfiable with issues disabled -
+and every **push to `main`** is green, because all governance steps are gated
+on `pull_request`. Note also that a bare `gh run list` in a local checkout
+resolves to the `upstream` remote and shows majiayu000/remem's green history,
+which is easy to mistake for recol activity; always pass
+`--repo maxkulish/recol`.
 
 ## Next
 
-**Start with R0-00.** Six acceptance criteria across five tasks - R0-02, R0-04,
-R0-05, R0-06, R0-07 - read "on a pull request, X runs and passes", and none of
-them can be met while Actions never starts. R0-05 is the whole CI rebuild and is
-verified almost entirely through pull request runs, so proceeding without it
-means building CI blind and discovering at R0-04 that nothing ever ran.
-
-**Do not simply switch Actions on.** Four workflows fire the moment it works,
-and `auto-release.yml` triggers on CI completing on `main` and attempts to tag
-and publish a release. `closure-audit.yml` and `sensitive-governance.yml` are
-`pull_request_target` bots needing `issues: write`, which is disabled here.
-`pages.yml` deploys a site that is not configured. R0-00 disables those four
-first, while Actions is still dormant, and leaves only CI and the tag-triggered
-`release.yml`.
-
-Expect the first CI run to be **red**: `ci.yml` still carries the GH813 replay a
-detached repository cannot satisfy. A red run that concludes satisfies R0-00;
-R0-02 and R0-05 make it green.
+**Start with R0-02.** Its blockers, 00 and 01, are both done, and it deletes
+the governance machinery that turns every pull request red - including the
+"Resolve linked issue" step PR #3 died on. It is also the first real task for
+the `/task:orchestrate` path (below), which has shipped but never carried one.
 
 **R0-03 and R0-08 remain unblocked** and depend on none of this, so they can run
 alongside.
@@ -73,9 +61,9 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 
 | Task | Type | Blocked by | Status |
 |---|---|---|---|
-| [00 Enable GitHub Actions](docs/tasks/r0-00-enable-actions.md) | HITL | - | **next** |
+| [00 Enable GitHub Actions](docs/tasks/r0-00-enable-actions.md) | HITL | - | done |
 | [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | done |
-| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | todo |
+| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | **next** |
 | [03 Delete npm/ and server.json](docs/tasks/r0-03-delete-npm-and-server-json.md) | AFK | - | todo |
 | [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 00, 05 | todo |
 | [05 Rebuild ci.yml, Rust first](docs/tasks/r0-05-rebuild-ci-rust-first.md) | AFK | 00, 02, 03 | todo |

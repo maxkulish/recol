@@ -30,11 +30,12 @@ before that inspection:
 
 - R0-01 must precede R0-02 because the mandated preflight invokes scripts R0-02
   deletes. **Satisfied** - R0-01 is merged, so R0-02 is clear to start.
-- R0-00 exists because GitHub Actions has never run here. Six acceptance
+- R0-00 existed because GitHub Actions had never run here. Six acceptance
   criteria across R0-02, 04, 05, 06, and 07 read "on a pull request, X runs and
-  passes", and none can be met while nothing starts. It also disables four
-  workflows before enabling runs - `auto-release.yml` triggers on CI completing
-  on `main` and would attempt to publish a release.
+  passes", and none could be met while nothing started. **Satisfied** - the
+  fork-inherited gate was cleared 2026-08-07 (the task file records the cause),
+  the four hazardous workflows were disabled first, and `auto-release.yml` has
+  zero runs despite its trigger having since fired.
 - R0-04 is blocked by R0-05 because branch protection pins a status check by
   name, and R0-05 renames the job. Applying it before R0-00 would pin a check
   that never reports, blocking every merge to `main` permanently.
@@ -66,10 +67,13 @@ you need the old installation, restore it - `RESTORE.md` is in that directory.
 **R0-01 is complete**, merged as PR #1. Its five acceptance criteria are green
 and the preflight no longer invokes the three scripts R0-02 deletes.
 
-**Start with R0-00.** It gates 02, 04, 05, 06, and 07. R0-05 is the entire CI
-rebuild and is verified almost wholly through pull request runs, so skipping
-R0-00 means building CI blind and finding out at R0-04 that nothing ever ran.
-Read its warning about disabling four workflows before enabling anything.
+**R0-00 is complete**, merged as PR #3. Actions runs: pull request runs are
+red at the inherited "Resolve linked issue" step until R0-02 deletes it, and
+pushes to `main` are green because every governance step is gated on
+`pull_request`.
+
+**Start with R0-02.** Its blockers, 00 and 01, are both done, and it removes
+what keeps every pull request red.
 
 **03 and 08 are unblocked** and depend on none of this, so they can run
-alongside R0-00.
+alongside R0-02.

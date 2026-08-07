@@ -77,6 +77,12 @@ run happens and concludes, not that it passes. R0-02 and R0-05 make it green.
 
 A run stuck in `queued` is not a conclusion and does not count.
 
+Outcome: half right. Both `pull_request` runs were red, but they died at step
+18, "Resolve linked issue for classification" (unsatisfiable with issues
+disabled), before the GH813 replay was reached. The `push` run on `main` was
+**green** - every governance step is gated on `github.event_name ==
+'pull_request'`, so pushes skip all of them.
+
 ## The gh trap
 
 `gh run list` without `--repo` resolves through the worktree's remotes and
@@ -93,7 +99,12 @@ here. R0-01 lost time to this. Always pass `--repo maxkulish/recol`.
 - [x] Enable workflow runs
       (the permissions toggle; run 31213733517 created on PR #3 proves events
       now reach workflows)
-- [ ] Prove a run on a pull request and a run on a push to `main`
+- [x] Prove a run on a pull request and a run on a push to `main`
+      (PR #3: runs 31213733517 and 31213826716, both `pull_request`, both
+      concluded `failure` as predicted; merge `4dc59c20`: run 31214281270,
+      `push`, concluded `success` in 26m50s - the failing governance steps are
+      all `pull_request`-gated, so pushes to `main` are green even before
+      R0-02)
 
 ## Acceptance criteria
 
