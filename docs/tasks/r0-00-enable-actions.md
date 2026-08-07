@@ -28,10 +28,22 @@ explanations are all ruled out:
 - `ci.yml` triggers on `push: branches: [main]` and `pull_request`, and both
   have happened, including PR #1 merged 2026-08-03 and several direct pushes
 
-Leading hypothesis: the repository was **created as a fork** on 2026-07-26 and
-detached later. GitHub suppresses workflow runs on forks until a human enables
-them from the Actions tab, detaching does not clear that state, and the
-permissions API does not expose the gate. Confirm before assuming.
+Confirmed cause (2026-08-07): the fork-inherited suppression, cleared by
+toggling the repository's Actions permission off and back on:
+
+```
+gh api -X PUT repos/maxkulish/recol/actions/permissions -F enabled=false
+gh api -X PUT repos/maxkulish/recol/actions/permissions -F enabled=true -f allowed_actions=all
+```
+
+The gate is invisible to the API: `actions/permissions` reported
+`enabled: true, allowed_actions: all` before, during, and after the
+suppression, and all six workflows reported `active` throughout. The evidence
+bracket is tight: the push of `2faad430` to `main` earlier the same day,
+before the toggle, produced no run and left `total_count` at 0; PR #3, opened
+minutes after the toggle, produced run 31213733517 within seconds. The only
+other repository-level change in between was disabling the four hazardous
+workflows, none of which is CI.
 
 ## Do the disables first
 
@@ -76,8 +88,11 @@ here. R0-01 lost time to this. Always pass `--repo maxkulish/recol`.
 - [x] Disable `auto-release`, `closure-audit`, `sensitive-governance`, `pages`
       (2026-08-07, all four report `disabled_manually`; CI and Release remain
       `active`)
-- [ ] Determine the actual cause of the suppression and record it
-- [ ] Enable workflow runs
+- [x] Determine the actual cause of the suppression and record it
+      (see "Why this exists" above; hypothesis replaced with the confirmed cause)
+- [x] Enable workflow runs
+      (the permissions toggle; run 31213733517 created on PR #3 proves events
+      now reach workflows)
 - [ ] Prove a run on a pull request and a run on a push to `main`
 
 ## Acceptance criteria
