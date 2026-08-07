@@ -135,6 +135,15 @@ Do this before running R0-02 through the orchestrator.
 
 ### Step 2 - Make the file-based task track first-class
 
+**Done.** One thing was worse than the inventory said: `project/sync.md` did not
+merely lack R0-NN id parsing, it documented a `project.md` that does not exist
+here either - ASCII dependency trees with status emoji, a `WIP: n/5` counter,
+Linear epics. The real board is a `## Done` evidence table, a `## Next` prose
+argument, and one R0 table. Every validation and edit rule in the file had no
+target, so it was rewritten against the real shape rather than extended. The
+board had no in-progress status either; `doing` was added, which is the one
+change here to a document the human owns.
+
 - `task/phases/init.md`: a task ref matching `R\d+-\d+` resolves to
   `docs/tasks/r*-*.md` instead of Linear. The task file is the spec
   (formalizing R0-01's improvisation): `spec.spec_file` points at it,

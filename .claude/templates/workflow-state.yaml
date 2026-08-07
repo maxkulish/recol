@@ -89,6 +89,9 @@ phases:
     # are only the artifacts a run produced.
     gate_run: false
     validation_reports: []    # Paths to reviewer and synthesis reports, if L4 ran
+    # Defects found mid-task that belong to another task (conventions W1).
+    # [{path, reason, owner_task}] - flag and defer, do not widen the diff.
+    deliberately_not_changed: []
 
   pr:
     status: pending

@@ -98,3 +98,59 @@ distinction between "the gate says no" and "there was no gate".
 Not validated: the `pyyaml missing` branch, which reports `UNAVAILABLE` on
 import failure. Simulating it means breaking the interpreter, so it is read code
 rather than exercised code. Treat that one line with the suspicion it deserves.
+
+---
+
+## W - Working a task
+
+### W1 - Flag and defer; do not widen the task
+
+R0's tasks are cut so that each one lands as a reviewable commit. Fixing
+something you noticed on the way destroys that property: the diff stops matching
+the acceptance criteria, and the reviewer has to judge two changes as one.
+
+When you find a defect that belongs to another task, or to no task yet:
+
+1. Leave a marker at the site if the code will otherwise mislead someone:
+   `// TODO(r0): <one line - what is wrong and which task owns it>`.
+2. Add an entry to `deliberately_not_changed` in the workflow state file, naming
+   the file and the reason.
+3. Say it in the PR description, not only in the YAML.
+
+Fix it in the same commit only when the task cannot pass its own acceptance
+criteria without the fix. That exception is narrow on purpose.
+
+**Why:** R0-01 hit this with `AGENTS.md` and improvised - it recorded the
+deferral, which was right, but as one-off prose rather than a convention, so the
+next task had nothing to copy.
+
+### W2 - Fix the loop, not just the instance
+
+A review finding has two possible fix sites: the code, and whatever let the code
+get that way. The code is never the only one.
+
+When a finding appears for the second time across R0 tasks, the fix is not
+complete until one of these also lands:
+
+- a new mechanical check in `scripts/gate.sh`, if the finding is detectable, or
+- a new rule in this file, if it needs judgment.
+
+Record the finding that minted the rule, the way G1 records R0-01. A rule with no
+incident behind it is someone's preference and will be argued with; a rule with a
+dated failure behind it is settled.
+
+**Why:** R0-01's four Qodo findings, three of which were about the workflow state
+file rather than the code, produced four code fixes and no loop fixes. The lesson
+recorded at the time - "one `yaml.safe_load` loop over `docs/status/*.yaml` would
+have caught the worst one before the first push" - had nowhere to land. It is now
+gate layer L3.
+
+### W3 - Acceptance criteria are run, not read
+
+The criteria in a task file are commands with expected results. Run each one and
+paste what it printed. "Verified" without output is not evidence, and a criterion
+that cannot be run as written is a bug in the task file - fix the task file, in
+the same PR, rather than downgrading the criterion to a description.
+
+`scripts/gate.sh --task <id>` prints them so there is no ambiguity about which
+list is authoritative.

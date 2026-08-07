@@ -66,6 +66,18 @@ Run once before the first write, only if `advisor.enabled` is true and
    - Add history entry: `implementation_complete`
    - **Continue to Validation Gate** (Step 5)
 
+### Scope discipline while implementing
+
+A defect you notice on the way that belongs to another task gets flagged and
+deferred, not fixed: leave a `// TODO(r0): ...` marker if the code would
+otherwise mislead, append `{path, reason, owner_task}` to
+`phases.implement.deliberately_not_changed`, and say it in the PR description.
+Fix it inline only when the task cannot pass its own acceptance criteria
+without the fix.
+
+Widening the diff destroys the property the task was cut for: that the change
+and the acceptance criteria describe the same thing. See conventions W1.
+
 ---
 
 ## Step 5: Validation Gate
@@ -239,6 +251,10 @@ Otherwise run:
    d. The **session model** applies the scoped fix inline, commits it, and appends
       the new SHA to `phases.implement.commits`; add history `commit_created`.
    e. Log one line to the user: `Outcome iteration <n>/<max>: FAIL on <finding> -> applied <fix>`.
+      If this finding has now appeared on a second task in the round, the code fix
+      is not the whole fix: add a mechanical check to `scripts/gate.sh` if it is
+      detectable, or a rule to the round conventions file if it needs judgment.
+      See conventions W2.
    f. Re-run the whole gate, L1 through L4, against the updated diff - not just
       the layer that failed. A fix for an acceptance criterion routinely breaks a
       test, and a scoped re-run would not see it. Return to step 1 with the new

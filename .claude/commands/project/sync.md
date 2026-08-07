@@ -1,13 +1,15 @@
 # /project:sync - Apply a task state change to the local tracker
 
-**Purpose**: Keep `project.md` consistent with Linear when a task starts, finishes, or changes its blockers.
+**Purpose**: Keep `project.md` consistent with what actually happened when a task starts, finishes, or changes its blockers.
 
 **Usage**:
-- `/project:sync REC-XX --start`
-- `/project:sync REC-XX --complete`
-- `/project:sync REC-XX --complete "Summary text"`
-- `/project:sync REC-XX --block REC-YY`
-- `/project:sync REC-XX --unblock`
+- `/project:sync R0-02 --start`
+- `/project:sync R0-02 --complete`
+- `/project:sync R0-02 --complete "Summary text"`
+- `/project:sync R0-02 --block R0-05`
+- `/project:sync R0-02 --unblock`
+
+Task refs come in two shapes. `R<n>-<nn>` is file-based and lives in `docs/tasks/`; `REC-<n>` is a Linear issue. Only the file-based shape appears on this board today. A Linear-tracked ref does everything below **and** sets the issue state; a file-based ref has no Linear side and must not be reported as missing one.
 
 ---
 
@@ -15,38 +17,32 @@
 
 `project.md`. There is no `PROJECT.md`, no `ROADMAP.md`, no `DEPENDENCIES.md` - do not create them, do not look for them, do not report them as missing. Earlier versions of this command assumed all three; every run had to work around their absence.
 
-`project.md` is not a set of tables. It is:
+Read it before editing. It is not a set of interchangeable tables:
 
 | Part | What it is |
 |---|---|
-| `**Last updated**:` line | One line, bumped on every edit |
-| `## Status summary` | Prose bullets, including a `WIP: n/5` count |
-| Dependency **trees** | ASCII trees with status emoji per node |
-| `## Connections and dependencies` | Every edge with the reason it exists |
-| `**Critical path**:` line | One prose line naming the current gate |
+| `Last updated: <date>.` | One plain line near the top. Not bold, not a field |
+| `## Done` | Two-column table, `\| \| Evidence \|`. The left cell is a claim, the right is how you know |
+| `## Next` | Prose. Which task to start and what would go wrong otherwise |
+| `## R0 - ...` | The task table: `\| Task \| Type \| Blocked by \| Status \|` |
+| The fenced ASCII graph under it | Numeric dependency edges: `01 -> 02`, `00 gates 02, 04, ...` |
+| `## Roadmap after R0` | Post-R0 items with a blocked-by and a class |
+| `## Working constraints` | Settled facts. Never edited by this command |
 
-Edits are surgical changes to prose and trees, not row insertions.
+**Task rows** link the task file: `| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | todo |`. `Blocked by` holds bare task numbers, not full ids. `Type` is `AFK` or `HITL` and comes from the task file.
 
-**Legend**: ✅ done · 🔄 in progress · ⚪ ready · 🔒 blocked · ⬜ backlog · ✳️ epic · ⏸ hold
+**Status vocabulary**: `todo` -> `doing` -> `done`, plus `**next**` on exactly one row, marking the recommended starting point. `doing` was added when `/task:orchestrate` needed a way to say "in flight": the board previously had no in-progress state, and reusing `**next**` for it would have made "what should I start" unanswerable while work was underway.
 
----
-
-## Epics
-
-An epic is an ordinary Linear issue titled `EPIC E<n>: ...`, drawn as `✳️`, whose body links its children. Linear has no native epics.
-
-- **Never sync an epic directly.** `--start` or `--complete` on a `✳️` node is an error: reply that epic state is derived from children and ask which child was meant.
-- An epic is 🔄 once any child is 🔄, and ✅ only when every child is ✅.
-- On `--complete` of a child, re-evaluate its epic. If it was the last open child, say so and offer to close the epic in Linear.
-- A child under two epics (currently REC-578) lives in one place and is cross-referenced from the other. Never duplicate its node.
+Edits are surgical changes to specific cells and prose, not rewrites.
 
 ---
 
 ## Step 1: Read before writing
 
 1. Read `project.md` in full. Never edit it from memory - other sessions change it.
-2. Fetch the issue with `mcp__linear-server__get_issue` for title, state and labels.
-3. Locate the task's node in the tree. Not found → stop and ask where it belongs rather than appending it somewhere plausible.
+2. Read the task file at `docs/tasks/<task-id>-*.md` for its Goal, Type, and `Blocked by:` line. For a Linear ref, fetch the issue with `mcp__linear-server__get_issue` instead.
+3. Locate the task's row. Not found -> stop and ask where it belongs rather than appending it somewhere plausible.
+4. Check the row's `Blocked by` against the task file's `Blocked by:` line. They disagree only when one of them was not updated; say which you trust and why before editing either.
 
 ---
 
@@ -54,18 +50,16 @@ An epic is an ordinary Linear issue titled `EPIC E<n>: ...`, drawn as `✳️`, 
 
 **Validate**
 
-- **WIP limit.** Count 🔄 nodes across all trees. The summary line says `WIP: n/5`. At 5, list them and ask which to pause. Do not proceed unasked.
-- **Blockers.** If the node is 🔒, or `## Connections and dependencies` lists an incomplete blocker, report it and stop. Starting a blocked task is the error this check exists to catch.
-- **Epic guard.** `✳️` node → refuse per *Epics* above.
+- **Blockers.** Every task number in the row's `Blocked by` cell must be `done`. If any is not, report which and stop. Starting a blocked task is the error this check exists to catch, and `docs/tasks/README.md` records that several R0 dependencies are real rather than advisory.
+- **Already `doing`.** Another task in flight is not an error here - the board has no WIP ceiling - but say how many rows are `doing` so the human can decide.
 
 **Apply**
 
-1. Node emoji → 🔄.
-2. If its epic is not already 🔄, set it.
-3. Update the `WIP: n/5` count in the status summary.
-4. If this task is the current gate, update the `**Critical path**:` line.
-5. Bump `**Last updated**:` with a short parenthetical.
-6. Set the Linear issue to In Progress.
+1. Status cell -> `doing`.
+2. If this task is now the obvious starting point and no other row holds it, move the `**next**` marker.
+3. Update `## Next` only if the prose it contains is now wrong. It argues a case; do not append a status line to it.
+4. Bump `Last updated:`.
+5. Linear ref only: set the issue to In Progress.
 
 ---
 
@@ -73,35 +67,38 @@ An epic is an ordinary Linear issue titled `EPIC E<n>: ...`, drawn as `✳️`, 
 
 **Apply**
 
-1. Node emoji → ✅. Append the merge evidence inline: `(PR #NN, done MM-DD)`.
-2. **Flip what it unblocked.** For every node whose only blocker was this task, 🔒 → ⚪. Consult `## Connections and dependencies` for the real edges - the tree draws them but that section states them.
-3. **Re-evaluate the epic.** All children ✅ → mark the epic ✅ and offer to close it in Linear.
-4. Update the `WIP: n/5` count.
-5. Update the `**Critical path**:` line if the gate moved.
-6. Add a status-summary bullet only if the task carries a finding worth keeping. Routine completions do not need one; the tree already records them.
-7. Bump `**Last updated**:`.
-8. Set the Linear issue to Done.
+1. Status cell -> `done`.
+2. **Add a `## Done` row.** Left cell is what is now true, right cell is the evidence: the PR link and merge SHA, which acceptance criteria went green, and any finding worth keeping. Rows already there set the bar - they cite run counts, SHAs, and what a failure taught.
+3. **Flip what it unblocked.** For every row whose `Blocked by` listed only this task, it is now startable. Move `**next**` if the gate moved.
+4. **Check the ASCII graph.** It encodes the same edges as the `Blocked by` column. If completion changed the shape of the work - a task turned out not to gate what the graph says - fix the graph in the same edit, or the two disagree silently.
+5. Update `## Next` if the critical path moved. This is prose: rewrite the paragraph, do not bolt a sentence onto it.
+6. Bump `Last updated:`.
+7. Linear ref only: set the issue to Done.
 
-**Verify before claiming done.** If the task asserts something observable - an endpoint, a screen, a deploy - check it rather than trusting the merge. On 2026-07-26, REC-562 sat merged-but-undeployed for a day because a post-merge `startup_failure` published no image, and REC-560 was marked complete while `/exercise` still 404'd because the rsync had never been run. A merged PR is not a working feature.
+**Verify before claiming done.** If the task asserts something observable - a workflow that runs, an installed binary, a published release - check it rather than trusting the merge. On 2026-07-26, REC-562 sat merged-but-undeployed for a day because a post-merge `startup_failure` published no image, and REC-560 was marked complete while `/exercise` still 404'd because the rsync had never been run. A merged PR is not a working feature.
+
+Acceptance criteria are the specific form of that check here: the task file states them as commands with expected results. `--complete` on a task whose criteria were never run is the same mistake with better paperwork.
 
 ---
 
-## Action: --block REC-YY
+## Action: --block R0-YY
 
-1. Verify REC-YY exists in Linear.
-2. Node emoji → 🔒.
-3. Add the edge to `## Connections and dependencies` **with its reason**. An edge whose reason cannot be stated should not be added - ask instead.
-4. Add `blockedBy` on the Linear issue.
-5. Bump `**Last updated**:`.
+1. Verify R0-YY has a row (or a Linear issue, for a Linear ref).
+2. Add its number to the task's `Blocked by` cell.
+3. Add the edge to the ASCII graph **with the same direction the cell states**.
+4. Say in the output why the edge exists. An edge whose reason cannot be stated should not be added - ask instead.
+5. Bump `Last updated:`.
+6. Linear ref only: add `blockedBy` on the issue.
 
 ---
 
 ## Action: --unblock
 
-1. Node emoji 🔒 → ⚪.
-2. Remove the edge from `## Connections and dependencies`, or state why it no longer holds.
-3. Remove the relation in Linear with `removeBlockedBy`.
-4. Bump `**Last updated**:`.
+1. Remove the number from the `Blocked by` cell.
+2. Remove the corresponding edge from the ASCII graph.
+3. State why it no longer holds.
+4. Bump `Last updated:`.
+5. Linear ref only: remove the relation with `removeBlockedBy`.
 
 ---
 
@@ -110,19 +107,15 @@ An epic is an ordinary Linear issue titled `EPIC E<n>: ...`, drawn as `✳️`, 
 Report what changed and what it unblocked. Keep it short:
 
 ```
-REC-576 complete
+R0-02 complete
 
 project.md
-  REC-576  ⚪ -> ✅  (PR #91, done 07-28)
-  REC-568  🔒 -> ⚪   unblocked
-  REC-570  🔒 -> ⚪   unblocked
-  WIP 2/5 -> 1/5
-  epic REC-581: 3 of 4 children done
+  R0-02  doing -> done   (PR #4, merged 8f21ac3)
+  R0-05  blocked -> startable   (00, 02, 03 all done)
+  Done   + "Governance machinery deleted"
+  next   R0-00 -> R0-05
 
-Linear
-  REC-576 -> Done
-
-Next: REC-568 and REC-570 are both ready.
+Next: R0-05 is the CI rebuild and gates 04, 06, 07.
 ```
 
 ---
@@ -131,10 +124,11 @@ Next: REC-568 and REC-570 are both ready.
 
 | Case | Response |
 |---|---|
-| Issue not in Linear | Report the ID and stop. Do not create it. |
-| Node absent from `project.md` | Ask where it belongs. Do not guess a parent. |
+| Row absent from `project.md` | Ask where it belongs. Do not guess a position. |
+| Task file absent from `docs/tasks/` | Report the glob that found nothing and stop. |
 | Already in target state | Say so and make no edit. Idempotent. |
-| `--start` on an epic | Refuse; ask which child. |
+| `Blocked by` names an unfinished task | Refuse `--start`; list which. |
+| Row and task file disagree on blockers | Report both, ask, edit neither. |
 | File changed since read | Re-read and re-apply. Never overwrite from memory. |
 
 ---
@@ -142,6 +136,8 @@ Next: REC-568 and REC-570 are both ready.
 ## Does not
 
 - Create the three aggregation files. They do not exist here by design.
-- Modify Linear beyond the state and relation changes named above.
-- Skip the WIP or blocker check.
+- Touch `## Working constraints`. Those are settled facts, not task state.
+- Rewrite `## Next` wholesale. It is an argument; amend it where it became wrong.
+- Report a missing Linear issue for a file-based task. That track has none.
+- Skip the blocker check.
 - Mark work complete on the strength of a merge alone.
