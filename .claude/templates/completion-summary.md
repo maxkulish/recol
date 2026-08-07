@@ -39,7 +39,7 @@ Every field below is read from `docs/status/rec-XX-workflow.yaml`. **Do not inve
 | Pre-merge re-fetch | `phases.pr.pre_merge_refetch_passed` → ✅ passed / ❌ failed / ⚠️ skipped | ⚠️ skipped |
 | Lessons file | `phases.complete.lessons_file` | omit Lessons block if empty |
 | Lessons list | `phases.complete.lessons_learned[]` (one bullet per item) | omit Lessons block if empty |
-| Aggregation files updated | `phases.complete.aggregation_files_updated` → ✅ / ❌ on each of the three files | ❌ on all three |
+| Board updated | `phases.complete.board_updated` → ✅ / ❌ | ❌ |
 | Footer phase / workflow / status | `workflow.current_phase` · `workflow.status` · derived (`✅ DONE` when both are `complete`, else `⚠️ IN PROGRESS`) | as observed |
 
 ---
@@ -54,7 +54,7 @@ Operational tasks (`task_type: operational`) often skip Design, Plan, and full I
 - **Pull Request** and **PR Review**: if no `pr_url` exists, omit both blocks entirely (no header, no `(skipped)` line) — operational tasks without code changes don't show PR sections at all.
 - **Lessons**: omit the whole block if `lessons_learned` is empty.
 
-The four mandatory blocks that always render regardless of task type: **Task**, **Discovery** (or skip line), **Aggregation Files**, **Footer**.
+The four mandatory blocks that always render regardless of task type: **Task**, **Discovery** (or skip line), **Board**, **Footer**.
 
 ---
 
@@ -89,7 +89,7 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
 📐 Design
    Document:     {{design_doc}}
    Assumptions:  {{n_surfaced}} surfaced → {{n_held}} held · {{n_violated}} violated · {{n_untested}} untested
-   Review:       Gemini → {{review_verdict}}
+   Review:       {{review_backend}} → {{review_verdict}}
    Suggestions:  {{n_applied}} applied · {{n_flagged}} flagged (deferred)
 
 ⚙️  Implementation
@@ -108,10 +108,8 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
    • {{lesson_1}}
    • {{lesson_2}}
 
-📂 Aggregation Files
-   {{project_md_icon}} project.md
-   {{roadmap_md_icon}} docs/plan/01-roadmap.md
-   {{dependencies_md_icon}} docs/tasks/README.md
+📂 Board
+   {{board_icon}} project.md
 
 ───────────────────────────────────────────────────────────
  Phase: {{current_phase}} · Workflow: {{workflow_status}} · Status: {{final_status_icon}} {{final_status_word}}

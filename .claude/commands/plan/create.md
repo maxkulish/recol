@@ -10,11 +10,9 @@
 
 ## Project Context
 
-| Setting | Value |
-|---------|-------|
-| Linear Workspace | cloud-ai |
-| Issue Prefix | REC (e.g., REC-123) |
-| Branch Format | `{prefix}/rec-<number>-<short-desc>` (prefix: feat, fix, chore) |
+Read `.claude/templates/task-context.md` first: which task track the ref belongs
+to, where its requirements live, the branch convention, and how the work is
+verified. Nothing below repeats it.
 
 ---
 
@@ -185,6 +183,18 @@ Read `docs/ARCHITECTURE.md` or `docs/adr/` to understand:
 
 ---
 
+## Acceptance Criteria
+
+Carried through verbatim from the design document (or the task file). These are
+commands with expected results, not descriptions - `/plan:implement` runs them
+at the phase boundary and the validation gate runs them again as Layer 1. A
+criterion nobody can run is a bug here, not something to reword later.
+
+- [ ] [Criterion 1 — command, and what it must print or exit]
+- [ ] [Criterion 2]
+
+---
+
 ## Architecture Context
 
 [Brief summary of how this task fits into the system architecture]
@@ -213,10 +223,9 @@ Read `docs/ARCHITECTURE.md` or `docs/adr/` to understand:
 
 ### Phase N: Testing & Validation
 
-- [ ] Run unit tests: `cargo test`
-- [ ] Run integration tests
-- [ ] Manual verification
-- [ ] Code coverage check
+- [ ] Run the full gate: `scripts/gate.sh --task <task-id>`
+- [ ] Run every Acceptance Criterion above and paste what it printed
+- [ ] Manual verification of anything the criteria cannot express
 
 ### Phase N+1: Finalization
 
@@ -339,7 +348,7 @@ Next steps:
 
 ### Case 1: docs/plan/ folder doesn't exist
 
-- Create folder automatically: `mkdir -p docs/plans`
+- Create folder automatically: `mkdir -p docs/plan`
 
 ### Case 2: Plan file already exists
 
@@ -389,58 +398,3 @@ If continue: Generate basic template with task title, mark for refinement.
 | Refactoring | `refactor(REC-XX):` | `refactor(REC-20): simplify parser` |
 | Documentation | `docs(REC-XX):` | `docs(REC-10): add API documentation` |
 | Tests | `test(REC-XX):` | `test(REC-10): add unit tests` |
-
----
-
-## Example Execution
-
-### Example 1: With Design Document
-
-**User input**: `/plan:create rec-10`
-
-**Command execution**:
-
-1. Extract task: REC-10
-2. Fetch Linear task: "Implement WebSocket Handler"
-3. Find design doc: `docs/designs/rec-10-websocket-handler.md` (exists)
-4. Read architecture doc for context
-5. Parse design doc:
-   - Title: "WebSocket Handler Implementation"
-   - Phases: 4 phases (Prerequisites, Core, Testing, Validation)
-   - Tasks: ~15 tasks extracted
-6. Generate plan: `docs/plan/rec-10-websocket-handler.md`
-7. Post comment to Linear REC-10
-8. Create branch: `feat/rec-10-websocket-handler`
-9. Confirm to user: "SUCCESS: Implementation plan created!"
-
-### Example 2: Direct Mode (No Design Doc)
-
-**User input**: `/plan:create rec-25`
-
-**Command execution**:
-
-1. Extract task: REC-25
-2. Fetch Linear task: "Add CLI argument parsing"
-3. Search design doc: Not found
-4. Ask user: "Design doc not found. Proceed directly?"
-5. User selects: "proceed"
-6. Read architecture doc for context
-7. Generate plan based on task + architecture:
-   - Phase 1: Prerequisites
-   - Phase 2: CLI Parser module
-   - Phase 3: Testing
-8. Create: `docs/plan/rec-25-cli-argument-parsing.md`
-9. Post comment to Linear REC-25
-10. Confirm: "SUCCESS: Plan created in direct mode!"
-
----
-
-## Implementation Notes
-
-- Use `Read` tool to read design docs and architecture doc
-- Use `Write` tool to create plan file
-- Use `mcp__linear-server__get_issue` to validate task
-- Use `mcp__linear-server__save_comment` to post updates
-- Use `Bash` with `mkdir -p` to create docs/plan/ if needed
-- Calculate percentage: (completed tasks / total tasks) * 100
-- **Total task count** must include testing and PR creation tasks

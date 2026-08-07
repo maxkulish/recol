@@ -108,8 +108,8 @@ phases:
 
   complete:
     status: pending
-    # Whether PROJECT.md, ROADMAP.md, DEPENDENCIES.md updated
-    aggregation_files_updated: false
+    # Whether project.md was updated via /project:sync --complete
+    board_updated: false
     # Timestamp when PR was merged
     merged_at: null
 
@@ -117,8 +117,9 @@ phases:
 # docs/specs/2026-07-02-orchestrator-advisor-outcome-design.md)
 advisor:
   enabled: true
-  model: null                    # null = use the session model (the floor). Set to upgrade, e.g. claude-fable-5.
-  effort: high                   # high | max
+  model: null                    # null = use the session model (the floor). Recommended upgrade: claude-opus-5.
+                                 # Reserve claude-fable-5 for the hardest consults; it is not the default.
+  effort: high                   # high | xhigh | max. high or xhigh for the advisor; xhigh or max for Fable 5.
   max_calls_per_checkpoint: 1    # A and B: 1 each. C is bounded by outcome.max_iterations, not this cap.
   calls: []                      # single source of truth: [{phase, checkpoint, verdict, reasons, ts}]
 

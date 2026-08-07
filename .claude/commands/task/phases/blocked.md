@@ -17,10 +17,9 @@ If any phase encounters a blocker (e.g., dependency on another task, external re
 
 ### Step 2: Sync Project Files (if blocked by another task)
 
-- **Invoke**: `/project:sync REC-XX --block REC-YY`
-- This updates:
-  - PROJECT.md: Marks task as blocked with blocker info
-  - DEPENDENCIES.md: Adds to "Current Blockers" table
+- **Invoke**: `/project:sync <task-id> --block <blocker-id>`
+- That command adds the blocker to the task's `Blocked by` cell in `project.md`
+  and mirrors the edge into the dependency graph below the table.
 
 ### Step 3: Update Workflow State
 
@@ -52,8 +51,10 @@ When resuming a blocked workflow:
 
 ### Step 1: Check if Blocker is Resolved
 
-- Query Linear for blocker task status using `mcp__linear-server__get_issue`
-- Check DEPENDENCIES.md for current blockers
+- File-based track: check the blocker's Status cell in `project.md`, and confirm
+  its acceptance criteria actually ran. `done` on the board is a claim; the
+  task's own criteria are the evidence.
+- Linear track: query the blocker with `mcp__linear-server__get_issue`
 
 ### Step 2: If Resolved
 

@@ -155,114 +155,33 @@ This task is now complete."
 )
 ```
 
-### Step 6: Update Aggregation Files
+### Step 6: Update the Board
 
 **IMPORTANT**: In worktree mode, all file paths are relative to the main repo folder (set in Step 4).
 
-#### 6.1: Update PROJECT.md
+Do not edit the board by hand here. Run:
 
-Read `project.md` (in main repo) and update:
-
-**Move task from Active Work to Recently Completed**:
-
-Before:
-```markdown
-## Active Work
-| Task | Status | Phase | Blocked By |
-|------|--------|-------|------------|
-| [REC-XX](link) | In Progress | Phase 1 | - |
+```bash
+/project:sync <task-id> --complete "[one-line summary]"
 ```
 
-After:
-```markdown
-## Recently Completed
-| Task | Completed | Summary |
-|------|-----------|---------|
-| [REC-XX](link) | [Today's date] | [Brief summary] |
-```
+That command owns `project.md`: which cell moves, what evidence the `## Done`
+row needs, which rows the completion unblocks, and whether the `## Next` prose
+and the dependency graph still hold. Earlier versions of this step edited
+`PROJECT.md`, `ROADMAP.md` and `DEPENDENCIES.md` directly - three files that do
+not exist in this repository - and every run had to work around their absence.
+Duplicating the logic here is what let the two drift.
 
-#### 6.2: Update ROADMAP.md
-
-Read `docs/plan/01-roadmap.md` and update:
-
-**Change task status to Done**:
-
-Before:
-```markdown
-| REC-XX | [Title] | In Progress | REC-YY |
-```
-
-After:
-```markdown
-| REC-XX | [Title] | Done | REC-YY |
-```
-
-**Update phase completion count** in Summary table:
-
-```markdown
-| Phase | Tasks | Completed | Status |
-|-------|-------|-----------|--------|
-| Phase 1 | 4 | 3 | In Progress |  <- Update count
-```
-
-#### 6.3: Update DEPENDENCIES.md
-
-Read `docs/tasks/README.md` and update:
-
-**Remove from Current Blockers** (if REC-XX was blocking anything):
-
-Before:
-```markdown
-## Current Blockers
-| Blocked Task | Blocked By | Blocker Status | Notes |
-|--------------|------------|----------------|-------|
-| REC-ZZ | REC-XX | In Progress | ... |
-```
-
-After:
-```markdown
-## Unblocked & Ready
-| Task | Dependencies Satisfied | Ready Since |
-|------|------------------------|-------------|
-| REC-ZZ | REC-XX complete | [Today's date] |
-```
-
-### Step 7: Commit Aggregation File Updates
+### Step 7: Commit the Board Update
 
 **IMPORTANT**: Ensure you're in the main repo folder before committing.
 
-#### If Worktree Mode:
 ```bash
-# Should already be in main repo from Step 4
-# Verify current directory
-pwd  # Should show main repo path
+# In worktree mode you are already in the main repo from Step 4
+pwd
 
-# Add and commit (include status files from Steps 8-9 if already updated)
-git add project.md docs/plan/01-roadmap.md docs/tasks/README.md docs/status/
-git commit -m "$(cat <<'EOF'
-docs(REC-XX): update aggregation files for completed task
-
-- PROJECT.md: Moved REC-XX to Recently Completed
-- ROADMAP.md: Updated task status to Done
-- DEPENDENCIES.md: Updated blockers and unblocked tasks
-EOF
-)"
-git push origin main
-```
-
-**Note**: Stay in main repo folder for Steps 8-9 (status file updates).
-
-#### If Regular Branch Mode:
-```bash
-git add project.md docs/plan/01-roadmap.md docs/tasks/README.md
-git commit -m "$(cat <<'EOF'
-docs(REC-XX): update aggregation files for completed task
-
-- PROJECT.md: Moved REC-XX to Recently Completed
-- ROADMAP.md: Updated task status to Done
-- DEPENDENCIES.md: Updated blockers and unblocked tasks
-EOF
-)"
+git add project.md docs/status/
+git commit -m "docs(<task-id>): mark complete on the board"
 git push origin main
 ```
 
@@ -308,7 +227,7 @@ workflow:
 phases:
   complete:
     status: complete
-    aggregation_files_updated: true
+    board_updated: true
     merged_at: [ISO timestamp]
 
 history:
@@ -363,95 +282,30 @@ In regular branch mode, do not append anything after the canonical summary.
 
 ---
 
-## Aggregation File Templates
-
-### PROJECT.md Recently Completed Entry
-
-```markdown
-| [REC-XX](https://linear.app/cloud-ai/issue/REC-XX) | [YYYY-MM-DD] | [One line summary] |
-```
-
-### ROADMAP.md Updated Entry
-
-```markdown
-| [REC-XX](https://linear.app/cloud-ai/issue/REC-XX) | [Title] | Done | [Dependencies] |
-```
-
-### DEPENDENCIES.md Unblocked Entry
-
-```markdown
-| REC-ZZ | REC-XX complete | [YYYY-MM-DD] |
-```
-
----
-
 ## Special Cases
 
-### Case 1: Aggregation Files Don't Exist
+### Case 1: The task has no row on the board
+
+`/project:sync` stops and asks where the row belongs rather than guessing a
+position. Answer it; do not skip the sync to keep moving. A completed task
+missing from `project.md` is how the board stops being trustworthy.
+
+### Case 2: Merge conflicts in `project.md`
 
 ```
-WARNING: Aggregation files not found
-
-Expected files:
-- project.md [missing]
-- docs/plan/01-roadmap.md [missing]
-- docs/tasks/README.md [found]
+WARNING: project.md has conflicts after git pull
 
 Options:
-1. [create] - Create missing files from templates
-2. [skip] - Skip aggregation updates
-3. [cancel] - Cancel finalization
-
-Your choice:
+1. [manual] - Exit and resolve manually (recommended - this file is prose)
+2. [resolve] - Attempt auto-resolve
+3. [skip] - Skip the board update
 ```
 
-### Case 2: Task Not in Aggregation Files
+Prefer `manual`. `project.md` carries prose arguments in `## Next` and a
+dependency graph that a textual merge will happily corrupt into something that
+still parses.
 
-```
-NOTE: REC-XX not found in ROADMAP.md
-
-The task may not have been added to project tracking.
-
-Options:
-1. [add] - Add task to files now
-2. [skip] - Skip this file
-3. [manual] - I'll update manually
-
-Your choice:
-```
-
-### Case 3: Merge Conflicts in Aggregation Files
-
-```
-WARNING: Aggregation files have conflicts
-
-project.md has conflicts after git pull.
-
-Options:
-1. [resolve] - Attempt auto-resolve
-2. [manual] - Exit and resolve manually
-3. [skip] - Skip this file
-
-Your choice:
-```
-
-### Case 4: Multiple Tasks Were Blocking
-
-When REC-XX was blocking multiple tasks:
-
-```
-UNBLOCKED TASKS
-
-REC-XX completion unblocks:
-- REC-12: Add authentication
-- REC-15: Implement caching
-
-All will be moved to "Unblocked & Ready" in DEPENDENCIES.md.
-
-Proceed? (yes/edit/cancel)
-```
-
-### Case 5: Worktree Main Repo Not Found
+### Case 3: Worktree Main Repo Not Found
 
 ```
 WARNING: Main repo folder not found
@@ -461,13 +315,13 @@ Expected main repo: ../recol
 
 Options:
 1. [path] - Specify main repo path manually
-2. [skip] - Skip aggregation updates (update manually later)
+2. [skip] - Skip the board update (do it manually later)
 3. [cancel] - Cancel finalization
 
 Your choice:
 ```
 
-### Case 6: Worktree Main Repo Has Uncommitted Changes
+### Case 4: Worktree Main Repo Has Uncommitted Changes
 
 ```
 WARNING: Main repo has uncommitted changes
@@ -493,11 +347,9 @@ Before marking complete, verify:
 - [ ] PR is merged to main
 - [ ] Main branch is up-to-date locally (pulled in main repo)
 - [ ] Linear task status is "Done"
-- [ ] PROJECT.md updated
-- [ ] ROADMAP.md updated
-- [ ] DEPENDENCIES.md updated
+- [ ] `project.md` updated via `/project:sync --complete`
 - [ ] Status file has final summary
-- [ ] Aggregation updates committed and pushed to main
+- [ ] Board update committed and pushed to main
 
 **If Worktree Mode** (user handles after exiting):
 - [ ] User runs `gd` to delete worktree and branch

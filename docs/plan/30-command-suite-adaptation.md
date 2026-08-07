@@ -1,8 +1,10 @@
 # 30 - Command suite adaptation to the 2026-08 migration guidance
 
-**Status**: In progress (analysis 2026-08-07; Step 1 landed, Steps 2-3 underway)
-on branch `chore/gate-contract`. Progress is tracked per step in
-[The plan: three reversible steps](#the-plan-three-reversible-steps).
+**Status**: Implemented 2026-08-07 on branch `chore/gate-contract`, one commit
+per step. Each step records below what came out different from the sketch, and
+the two verification criteria that needed correcting rather than passing.
+Not yet exercised on a real task: the first proof is running R0-02 through
+`/task:orchestrate`.
 **Scope**: `.claude/commands/`, `.claude/templates/workflow-state.yaml`, and how R0+ rounds run through them
 **Sources**: `~/Work/investigations/claude/guides/` at index 1.19.0 (2026-08-06), which absorbed
 [Anthropic - How Anthropic runs large-scale code migrations with Claude Code](https://claude.com/blog/ai-code-migration).
@@ -166,6 +168,24 @@ change here to a document the human owns.
   findings amend it.
 
 ### Step 3 - Rightsize the suite
+
+**Done.** 7,076 lines to 6,543 across `.claude/commands/`, while adding the gate
+wiring, the two-track prelude, and the two-tier verification. The per-bot
+sections in `pr/review.md` collapsed from ~400 lines to ~170 by keeping only what
+differs between the three reviewers and deleting three restatements of the same
+fetch/fix/push/reply cycle.
+
+Both verification criteria below need correcting rather than reporting green:
+
+- The aggregation-file grep returns `project/sync.md` **and** `pr/finalize.md`.
+  Both are the historical note explaining that those three files never existed
+  here; finalize.md needed one for the same reason sync.md did. That is the
+  intended end state, not a miss.
+- `remem-ai` is not residue. It is the crate's actual name in `Cargo.toml`
+  today, and R0-08 through R0-10 are the tasks that rename it. Deleting an
+  accurate reference to satisfy a grep would have been the wrong move, so the
+  two occurrences stay, each now naming the task that will change them.
+  `src/audio` and `lok.toml` were genuine residue and are gone.
 
 - Fix the four broken seams: (a) resolved by Step 1; (b) correct the filename
   in `design-doc/finalize.md:168` to the synthesis report the review actually

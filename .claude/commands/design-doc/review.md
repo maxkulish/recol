@@ -64,18 +64,20 @@ TASK: Review the design document at: docs/designs/[DESIGN_DOC_FILENAME]
 
 Read these files to gather context:
 1. docs/designs/[DESIGN_DOC_FILENAME] — The design document to review
-2. docs/adr/ — Architecture documents (read all .md files in this directory)
-3. docs/adr/ — Architecture Decision Records (60+ files). List filenames first, then read ONLY the ADRs relevant to this design document's topic (typically 5-10 most relevant)
-4. docs/plan/01-roadmap.md — Current project phase and task status
-5. docs/tasks/README.md — Task dependency graph
-6. project.md — Active work and blockers
+2. docs/adr/ — Architecture Decision Records. There are few; read them all
+3. docs/plan/01-roadmap.md — Current project phase and task status
+4. docs/tasks/README.md — Executable tasks and their dependency ordering
+5. project.md — The board: what is done, what blocks what, what is next
+6. AGENTS.md — Repository commands and conventions
 
 If the design document references specific source files, read those too for validation.
 
 PROJECT CONTEXT:
-- This is a Rust crate (Cargo, edition 2021) named remem-ai - a local-first coding-agent memory system for Claude Code and OpenAI Codex; lib `remem`, bin `remem`
-- Linear workspace: cloud-ai
-- Issue prefix: REC
+- This is a Rust crate (Cargo, edition 2021) currently named `remem-ai`, a
+  local-first coding-agent memory system for Claude Code and OpenAI Codex;
+  lib `remem`, bin `remem`. R0-08 through R0-10 rename it to `recol`
+- Task tracking is file-based in docs/tasks/ (`R0-NN`). Some older work is in
+  Linear (workspace cloud-ai, prefix REC)
 
 REVIEW CRITERIA:
 
@@ -335,9 +337,9 @@ After every review from the Step 6 backend completes (plus optional personas), r
 ### Persona Summary (if applicable)
 | Persona | Verdict | Key Finding |
 |---------|---------|-------------|
-| Audio Safety | [verdict] | [1-line summary] |
-| FFI Safety | [verdict] | [1-line summary] |
-| State Machine | [verdict] | [1-line summary] |
+| Security | [verdict] | [1-line summary] |
+| Concurrency | [verdict] | [1-line summary] |
+| Backend Integration | [verdict] | [1-line summary] |
 
 ### Consolidated Verdict
 [Apply consensus rules: ANY NEEDS_REVISION -> NEEDS_REVISION, all APPROVE -> APPROVE, else APPROVE_WITH_SUGGESTIONS]
@@ -476,7 +478,7 @@ Read these files to gather context:
 
 If the design document references specific source files, read those too.
 
-PROJECT CONTEXT: Rust crate remem-ai - local-first coding-agent memory for Claude Code and OpenAI Codex. Linear workspace: cloud-ai. Issue prefix: REC.
+PROJECT CONTEXT: Rust crate `remem-ai` (renamed to `recol` by R0-08..R0-10) - local-first coding-agent memory for Claude Code and OpenAI Codex. Tasks are file-based in docs/tasks/ (R0-NN); older work is in Linear (workspace cloud-ai, prefix REC).
 
 [... full review criteria and output format ...]"
 

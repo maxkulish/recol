@@ -259,23 +259,3 @@ history:
 | `/pr:create` | PR (conditional) | Only if code changes |
 | `/pr:finalize` | Complete | Post-merge cleanup (if PR created) |
 | `/project:sync --complete` | Complete | Move to Recently Completed |
-
----
-
-## Philosophy
-
-**This orchestrator is designed to**:
-
-1. **Provide single entry point**: One command for entire task lifecycle
-2. **Enable resume capability**: Pick up where you left off
-3. **Ensure human checkpoints**: Validate at critical decision points
-4. **Maintain visibility**: Clear status at all times
-5. **Coordinate skills**: Chain existing skills intelligently
-6. **Track history**: Full audit trail of actions
-
-**This orchestrator does NOT**:
-
-1. **Make architectural decisions**: Uses design docs and plans
-2. **Skip validation**: Requires human approval at checkpoints
-3. **Force completion**: User can pause anytime
-4. **Hide state**: Everything persisted in YAML file

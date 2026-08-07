@@ -32,8 +32,8 @@
 ```
 ENTRY (Project Sync)
   |-> /project:sync --start
-  |-> Validate WIP limit (max 3 active)
-  |-> Add to PROJECT.md Active Work
+  |-> Validate the task's blockers are done
+  |-> Set its project.md Status to `doing`
   |
 EXECUTE (Interactive with status updates)
   |-> Create status file immediately

@@ -10,11 +10,9 @@
 
 ## Project Context
 
-| Setting | Value |
-|---------|-------|
-| Linear Workspace | cloud-ai |
-| Issue Prefix | REC (e.g., REC-123) |
-| Branch Format | `{prefix}/rec-<number>-<short-desc>` (prefix: feat, fix, chore) |
+Read `.claude/templates/task-context.md` first: which task track the ref belongs
+to, where its requirements live, the branch convention, and how the work is
+verified. Nothing below repeats it.
 
 ---
 
@@ -405,20 +403,31 @@ cargo clippy
 
 ##### Task 5: Validate Completion
 
-**Run validation commands**:
+Verification is two-tier, because the full suite costs about eleven minutes on
+this repository and most of that is integration tests that spawn the binary.
+Running it after every task would dominate the round; running it never is how a
+phase boundary turns into a surprise.
+
+**After each task** - the quick tier, about a minute:
 
 ```bash
-# Build check
-cargo build
-
-# Test check
-cargo test
-
-# Format check
-cargo fmt -- --check
+scripts/gate.sh --task <task-id> --quick
 ```
 
-**If validation fails**: Ask user to fix or continue
+fmt, `cargo check`, and the YAML sweep. It reports `cargo test` as `DEFERRED`,
+never as `PASS`, so the debt stays visible in the output.
+
+**At each phase boundary** - the full tier, plus the criteria:
+
+```bash
+scripts/gate.sh --task <task-id>
+```
+
+Then run every criterion in the plan's `## Acceptance Criteria` section and
+paste what it printed. The gate prints them but cannot execute them.
+
+**If validation fails**: fix it before marking the task complete. `--quick`
+passing is not the phase passing.
 
 ##### Task 6: Mark Task as Complete
 
@@ -655,29 +664,13 @@ Modules created/modified:
 Commits created: 20
 
 Next steps:
-1. Run final tests: cargo test
-2. Push branch: git push origin feat/rec-XX-short-desc
-3. Create PR: gh pr create --title "feat(REC-XX): [description]"
-4. Update Linear task status to "In Review"
+1. Run the full gate: scripts/gate.sh --task <task-id>
+2. Run every Acceptance Criterion and paste the output
+3. Push branch: git push origin feat/rec-XX-short-desc
+4. Create PR: gh pr create --title "feat(REC-XX): [description]"
 
--------------------------------------------
-ACTION REQUIRED: Update Aggregation Files
--------------------------------------------
-
-Update the following files to reflect task completion:
-
-1. project.md
-   - Move REC-XX from "Active Work" to "Recently Completed"
-   - Move next priority task to "Active Work"
-
-2. docs/plan/01-roadmap.md
-   - Update REC-XX status to "Done"
-   - Update phase completion percentage
-
-3. docs/tasks/README.md
-   - Remove REC-XX from "Current Blockers" (if listed)
-   - Move newly unblocked tasks to "Unblocked & Ready"
-   - Update dependency graph if needed
+The board is not updated here. /project:sync <task-id> --complete owns
+project.md, and it runs after the PR merges, not before.
 ```
 
 #### Case 2: User Stopped Mid-Execution
