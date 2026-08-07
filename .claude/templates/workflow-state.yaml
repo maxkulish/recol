@@ -40,10 +40,10 @@ phases:
     # Discovery probe tracking
     probe_completed: false
     probe_decision: null  # design | ops | pivot | skip
-    # AI review tracking (per-model)
-    review_gemini: null     # Path to Gemini review file
-    review_ollama: null     # Path to Ollama review file
-    review_verdict: null    # APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION (strictest of both)
+    # AI review tracking
+    review_backend: null    # lok | native | none - which backend actually ran
+    review_reports: []      # Paths to the individual reviews
+    review_verdict: null    # APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION (strictest of all)
     review_completed: false # Whether AI review ran successfully
     # Review feedback application tracking
     review_applied: false
@@ -56,6 +56,15 @@ phases:
     spec_file: null
     approved: false
     main_sha_at_approval: null
+    # AI review tracking
+    review_backend: null    # lok | native | none - which backend actually ran
+    review_reports: []      # Paths to the individual reviews
+    review_synthesis: null  # Path to the synthesis
+    review_verdict: null    # APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION (strictest)
+    review_completed: false
+    review_applied: false
+    applied_suggestions: []
+    flagged_suggestions: []
 
   plan:
     status: pending
@@ -76,11 +85,10 @@ phases:
     commits: []
     # Name of last completed implementation phase
     last_phase_completed: null
-    # Codex/Gemini validation gate tracking
-    codex_validated: false
-    codex_verdict: null       # PASS | PASS_WITH_NOTES | FAIL
-    codex_report: null        # Path to Codex validation report
-    gemini_validation_report: null  # Path to Gemini validation report
+    # Validation gate: the verdicts live in the top-level `gate:` block. These
+    # are only the artifacts a run produced.
+    gate_run: false
+    validation_reports: []    # Paths to reviewer and synthesis reports, if L4 ran
 
   pr:
     status: pending
@@ -110,6 +118,26 @@ advisor:
   effort: high                   # high | max
   max_calls_per_checkpoint: 1    # A and B: 1 each. C is bounded by outcome.max_iterations, not this cap.
   calls: []                      # single source of truth: [{phase, checkpoint, verdict, reasons, ts}]
+
+# The referee for the implement phase (docs/plan/30-command-suite-adaptation.md).
+# Four layers, cheapest and most certain first. `runner` owns L2 and L3; the
+# phase file owns L1 and L4.
+gate:
+  runner: scripts/gate.sh
+  # Which reviewer backend L4 reached:
+  #   lok    - .lok/workflows/implement-gate.toml was present and ran
+  #   native - Agent-tool reviewer fan-out
+  #   none   - no reviewer was reachable; L1-L3 still bind
+  llm_layer: null
+  # Verdicts copied from the runner's GATE SUMMARY block, plus L4.
+  # PASS | FAIL | MANUAL | DEFERRED | UNAVAILABLE
+  layers: []                     # [{layer, verdict, note}]
+  # Combined verdict over L1-L3 only: PASS | FAIL | INCOMPLETE
+  deterministic_verdict: null
+  # A gate that has never failed proves nothing. Set once per repo, not per task.
+  negative_validation:
+    validated: false
+    record: null                 # Path to the entry recording the seeded failure
 
 # Bounded grade-and-retry loop wrapping the Step 5 validation gate
 outcome:
@@ -148,7 +176,8 @@ history:
 #   plan_approved             - Plan approved for implementation
 #   phase_completed           - Implementation phase finished
 #   implementation_complete   - All plan tasks done
-#   codex_validation_complete - Codex + Gemini pre-PR validation finished
+#   gate_run                  - Validation gate executed (details: tier, verdict)
+#   gate_incomplete           - A gate layer could not run; verdict is not a pass
 #   commit_created            - Git commit made
 #   pushed_to_remote          - Branch pushed to origin
 #   pre_flight_checks_passed  - All local CI checks passed

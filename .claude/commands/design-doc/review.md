@@ -214,9 +214,14 @@ mkdir -p docs/reviews
 
 Construct the unified prompt (from the template above) by replacing `[DESIGN_DOC_FILENAME]` with the actual filename. **Both models get the same prompt.**
 
-### Step 6: Run AI reviews via lok
+### Step 6: Run AI reviews
 
-Run the lok design-review workflow. The workflow executes this pipeline:
+Use the first backend that is actually present. A design doc that no second
+reader ever saw is worse than a slow review, so this step never resolves to
+"skipped" while any backend remains.
+
+**Backend A - lok**, if `.lok/workflows/design-review.toml` exists in this repo.
+The workflow executes this pipeline:
 
 1. **Health check** (10s) - verifies Gemini CLI and Ollama are reachable. Unreachable models are skipped immediately instead of timing out after 300s.
 2. **Gemini review** (up to 300s) - runs primary model, falls back to `GEMINI_FALLBACK_MODEL` on empty output.
@@ -239,6 +244,28 @@ This produces:
 - `docs/reviews/rec-[XX]-review-ollama.md` (validated Ollama review or REVIEW_FAILED)
 - `docs/reviews/rec-[XX]-review-claude-fallback.md` (only if both external models failed)
 - `docs/reviews/rec-[XX]-review-synthesis.md` (cross-referenced synthesis with reviewer status)
+
+**Backend B - native fan-out**, when there is no `.lok/` in this repo. Dispatch
+two reviewer subagents with the `Agent` tool
+(`subagent_type: general-purpose`) in a single message so they run
+concurrently. Give each the design document, the context files from Step 3, and
+the unified prompt from Step 5, but assign each a different half of it:
+
+| Subagent | Prompt sections it answers |
+|---|---|
+| `review-architecture` | 1 Completeness, 2 Architecture, 3 ADR Compliance, 7 Verdict, 8 Actionable Feedback |
+| `review-risk` | 4 Security, 5 Implementation Concerns, 6 Blind Spots, 7 Verdict, 8 Actionable Feedback |
+
+Splitting the prompt rather than duplicating it is deliberate: two agents given
+the same prompt and the same model return the same review twice, which reads
+like agreement and is not. Write the results to
+`docs/reviews/rec-[XX]-review-architecture.md` and
+`docs/reviews/rec-[XX]-review-risk.md`; Step 8 synthesizes them exactly as it
+would the lok outputs.
+
+**Backend C - none**: nothing was reachable. Report `NO_REVIEWS_AVAILABLE` and
+say plainly at the checkpoint that the design is unreviewed. Never present an
+unreviewed design as reviewed.
 
 ### Step 7: Save Review Outputs
 
@@ -291,7 +318,7 @@ If `--persona` flag was provided, run additional domain-specific reviews. These 
 
 ### Step 8: Analyze All Reviews and Produce Synthesis
 
-After all reviews complete (Gemini + Ollama + optional personas), read all review files and produce a synthesis following the template at `.claude/templates/review-synthesis.md`:
+After every review from the Step 6 backend completes (plus optional personas), read all review files and produce a synthesis following the template at `.claude/templates/review-synthesis.md`. The synthesis does not care which backend produced the reviews:
 
 ```markdown
 ## Review Synthesis
@@ -393,7 +420,7 @@ For deeper diagnostics:
 - Gemini stderr: `/tmp/lok-gemini-stderr.log`
 - Ollama stderr: `/tmp/lok-ollama-stderr.log`
 
-**The `NO_REVIEWS_AVAILABLE` case should be rare.** The Claude fallback reviewer has no external dependencies - it reads files directly. If even the fallback fails, it indicates a problem with the lok pipeline itself, not network issues.
+**The `NO_REVIEWS_AVAILABLE` case should be rare.** Every fallback below lok has no external dependencies: the Claude fallback inside the workflow reads files directly, and Backend B's native fan-out needs nothing but the session's own `Agent` tool. Reaching `NO_REVIEWS_AVAILABLE` means the pipeline itself is broken, not that the network is down.
 
 ---
 
@@ -420,10 +447,15 @@ For deeper diagnostics:
 
 | File | Purpose | When created |
 |------|---------|--------------|
-| `docs/reviews/rec-XX-review-gemini.md` | Gemini AI review | Always (may contain REVIEW_FAILED) |
-| `docs/reviews/rec-XX-review-ollama.md` | Codex/Ollama AI review | Always (may contain REVIEW_FAILED) |
-| `docs/reviews/rec-XX-review-claude-fallback.md` | Claude fallback review | Only when both external models failed |
+| `docs/reviews/rec-XX-review-gemini.md` | Gemini AI review | Backend A (may contain REVIEW_FAILED) |
+| `docs/reviews/rec-XX-review-ollama.md` | Codex/Ollama AI review | Backend A (may contain REVIEW_FAILED) |
+| `docs/reviews/rec-XX-review-claude-fallback.md` | Claude fallback review | Backend A, only when both external models failed |
+| `docs/reviews/rec-XX-review-architecture.md` | Completeness, architecture, ADR compliance | Backend B |
+| `docs/reviews/rec-XX-review-risk.md` | Security, implementation concerns, blind spots | Backend B |
 | `docs/reviews/rec-XX-review-synthesis.md` | Cross-referenced synthesis with reviewer status | Always |
+
+Record whichever set was produced in `phases.design.review_reports`, and the
+backend in `phases.design.review_backend`.
 
 ---
 

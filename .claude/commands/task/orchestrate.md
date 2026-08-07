@@ -105,13 +105,21 @@ keyed by checkpoint. A consult that is skipped or fails is recorded and never
 blocks a transition. The mechanics live in the phase files; orchestrate.md only
 dispatches.
 
-The `implement` phase Step 5 also runs a bounded **outcome loop**: it grades the
-diff with the existing Codex + Gemini gate (strictest of the two), and on FAIL it
-auto-dispatches a scoped fix and re-verifies up to `outcome.max_iterations`
-(default 3, cap 5; `0` disables) before the human menu. An unreachable grader
-resolves to `outcome.status: ungraded` and the human menu. Both are pattern-level
-adoptions of the Advisor tool and Managed Agents Outcomes - no API calls. The
-mechanics live in `phases/implement.md`; orchestrate.md only dispatches.
+The `implement` phase Step 5 also runs a bounded **outcome loop** around the
+**validation gate**. The gate has four layers: the task's acceptance criteria,
+`cargo fmt/check/test`, a `yaml.safe_load` sweep, and model review.
+`scripts/gate.sh` owns the middle two and exits `0`/`1`/`2` for
+PASS/FAIL/INCOMPLETE. On FAIL the loop auto-dispatches a scoped fix and re-runs
+the whole gate up to `outcome.max_iterations` (default 3, cap 5; `0` disables)
+before the human menu.
+
+Only an `INCOMPLETE` deterministic verdict - a binding layer that could not run -
+resolves to `outcome.status: ungraded`. A missing model-review backend does not:
+the first three layers still grade the work. Getting that distinction wrong is
+what left R0-01 ungraded with every local check green. Both loop and advisor are
+pattern-level adoptions of the Advisor tool and Managed Agents Outcomes - no API
+calls. The mechanics live in `phases/implement.md`; orchestrate.md only
+dispatches.
 
 ---
 

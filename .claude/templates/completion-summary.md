@@ -31,7 +31,7 @@ Every field below is read from `docs/status/rec-XX-workflow.yaml`. **Do not inve
 | Flagged suggestions | `len(phases.design.flagged_suggestions)` | `0` |
 | Plan file | `phases.plan.plan_file` | `(none)` |
 | Commits | `len(phases.implement.commits)` + first 7 chars of each SHA, comma-joined | `0` |
-| Validation verdicts | `phases.implement.codex_verdict` · `gemini_validation_report` presence · `validation_synthesis_verdict` | `(not run)` |
+| Gate verdicts | `gate.deterministic_verdict` · `gate.llm_layer` · the `## Verdict` line of the L4 synthesis report, if any | `(not run)` |
 | Fix passes | `phases.implement.validation_fix_iteration_count` | `0` |
 | Review threads resolved | `phases.pr.review_comment_threads_resolved` | `0` |
 | Reviews addressed flag | `phases.pr.reviews_addressed` → ✅ / ❌ | ❌ |
@@ -95,7 +95,7 @@ Render exactly this layout. Preserve the box-drawing characters, indentation (3-
 ⚙️  Implementation
    Plan:         {{plan_file}}
    Commits:      {{n_commits}}  ({{commit_shorts}})
-   Validation:   Codex {{codex_verdict}} · Gemini {{gemini_verdict}} · Synthesis {{synthesis_verdict}}
+   Gate:         L1-L3 {{deterministic_verdict}} · L4 {{llm_layer}} → {{synthesis_verdict}}
    Fix passes:   {{validation_fix_iteration_count}}
 
 🛠️  Pull Request Review

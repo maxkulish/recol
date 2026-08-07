@@ -57,15 +57,17 @@
      - `phases.design.draft_ready: true`
    - Add history entry: `design_draft_ready`
    - **Invoke AI Review**: `/design-doc:review REC-XX`
-     - Display: "Running automated AI review (Gemini + Ollama in parallel, up to 5 minutes)..."
+     - Display: "Running automated AI review (two reviewers in parallel, up to 5 minutes)..."
      - Wait for both reviews to complete
      - Update state:
-       - `phases.design.review_gemini: docs/reviews/rec-XX-review-gemini.md`
-       - `phases.design.review_ollama: docs/reviews/rec-XX-review-ollama.md`
-       - `phases.design.review_verdict: [strictest verdict of both]`
+       - `phases.design.review_backend: [lok | native | none]` (which backend Step 6 reached)
+       - `phases.design.review_reports: [<paths of the individual reviews>]`
+       - `phases.design.review_verdict: [strictest verdict of all reviewers]`
        - `phases.design.review_completed: true`
      - Add history entry: `design_review_complete`
-     - **If both reviews time out or fail**: Skip apply step, continue to checkpoint (review is advisory)
+     - **If every reviewer fails** (`review_backend: none`): skip the apply step and
+       continue to the checkpoint, which must say the design is unreviewed rather
+       than showing an empty review block
    - **Apply Review Feedback** (see section below)
    - Update state:
      - `phases.design.status: checkpoint`
@@ -166,11 +168,11 @@ After all items are resolved, update state:
    Design document: docs/designs/rec-XX-[description].md
 
    ---
-   AI REVIEW RESULTS
+   AI REVIEW RESULTS ([lok | native | none])
 
-   Gemini verdict:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
-   Ollama verdict:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
-   Consensus:       [strictest of both]
+   [reviewer 1]:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
+   [reviewer 2]:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
+   Consensus:     [strictest of all]
 
    Auto-applied [N] suggestions:
    - [brief description of each applied change]
@@ -186,17 +188,15 @@ After all items are resolved, update state:
    Options:
    1. [approve] - Design is approved, finalize it
    2. [feedback] - I have changes to make
-   3. [view-gemini] - View full Gemini review
-   4. [view-ollama] - View full Ollama review
-   5. [pause] - Pause workflow, continue later
+   3. [view]    - View a full review (lists `phases.design.review_reports`)
+   4. [pause]   - Pause workflow, continue later
 
    Your choice:
    ```
 
-4. **If view-gemini**: Display `docs/reviews/rec-XX-review-gemini.md`, return to options
-5. **If view-ollama**: Display `docs/reviews/rec-XX-review-ollama.md`, return to options
+4. **If view**: List `phases.design.review_reports`, display the one chosen, return to options
 
-6. **If approve**:
+5. **If approve**:
    - **Invoke**: `/design-doc:finalize REC-XX`
    - Update state:
      - `phases.design.finalized: true`
@@ -206,12 +206,12 @@ After all items are resolved, update state:
    - Add history entry: `design_finalized`
    - **Continue to PLAN phase**
 
-7. **If feedback**:
+6. **If feedback**:
    - Ask for specific feedback
    - Update design document
    - Stay in checkpoint state
 
-8. **If pause**:
+7. **If pause**:
    - Save state
    - Exit with resume instructions
 
@@ -227,8 +227,8 @@ phases.design.status: complete
 phases.design.design_doc: <path to docs/designs/rec-XX-*.md>
 phases.design.draft_ready: true
 phases.design.discovery_context_used: <true|false>  # whether discovery report was available
-phases.design.review_gemini: <path|null>            # null if review failed/timed out
-phases.design.review_ollama: <path|null>            # null if review failed/timed out
+phases.design.review_backend: <lok|native|none>     # which backend actually ran
+phases.design.review_reports: [<paths>]             # empty array if no reviewer answered
 phases.design.review_verdict: <verdict|null>        # null if review failed/timed out
 phases.design.review_completed: <true|false>        # false if reviews failed/timed out
 phases.design.review_applied: <true|false>          # false if no reviews or nothing to apply

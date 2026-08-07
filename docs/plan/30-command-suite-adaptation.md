@@ -1,6 +1,8 @@
 # 30 - Command suite adaptation to the 2026-08 migration guidance
 
-**Status**: Proposed (analysis complete 2026-08-07, not yet started)
+**Status**: In progress (analysis 2026-08-07; Step 1 landed, Steps 2-3 underway)
+on branch `chore/gate-contract`. Progress is tracked per step in
+[The plan: three reversible steps](#the-plan-three-reversible-steps).
 **Scope**: `.claude/commands/`, `.claude/templates/workflow-state.yaml`, and how R0+ rounds run through them
 **Sources**: `~/Work/investigations/claude/guides/` at index 1.19.0 (2026-08-06), which absorbed
 [Anthropic - How Anthropic runs large-scale code migrations with Claude Code](https://claude.com/blog/ai-code-migration).
@@ -97,6 +99,16 @@ Each step is independently valuable and landable as its own PR, mirroring the
 Guide 13 Part E rollout discipline.
 
 ### Step 1 - Rebuild the referee as a repo-level gate contract
+
+**Done.** `scripts/gate.sh` is the deterministic runner, the `gate:` block in
+`.claude/templates/workflow-state.yaml` is the contract, and the negative
+validation is recorded in
+[`20-rename-and-release/conventions.md`](20-rename-and-release/conventions.md).
+Two things came out different from the sketch below: the `INCOMPLETE` verdict
+(exit 2) had to exist so an unrunnable layer could never read as a pass, and the
+review fallback had to be extended to `design.md` as well, because generalizing
+`spec.md`'s reviewer fields alone would have left the design path pointing at
+filenames the native backend does not write.
 
 Do this before running R0-02 through the orchestrator.
 

@@ -1,6 +1,6 @@
 # Phase: Specification (Specification Tasks Only)
 
-**Purpose**: Run the `/spec` skill to produce a lean 5-section specification, run AI review (Gemini + Ollama in parallel), apply feedback, and checkpoint for approval or upgrade to full design-doc workflow.
+**Purpose**: Run the `/spec` skill to produce a lean 5-section specification, run AI review with whichever backend is reachable, apply feedback, and checkpoint for approval or upgrade to full design-doc workflow.
 
 **Entry conditions**: `current_phase: spec` (task_type: specification)
 
@@ -20,9 +20,10 @@
 
 ## Status: reviewing
 
-### Step 2: AI Review of Specification (Gemini + Ollama in parallel)
+### Step 2: AI Review of Specification
 
-Before presenting the spec to the user for approval, run the same dual-model review pattern used in the design phase - adapted for spec documents.
+Before presenting the spec to the user for approval, run the same two-reviewer
+pattern the design phase uses, adapted for spec documents.
 
 **2a. Gather context for reviewers**
 
@@ -30,44 +31,68 @@ Build a context block that gives reviewers the problem framing they need:
 
 - **Linear task**: Fetch via `mcp__linear-server__get_issue` (title, description, labels, comments)
 - **Spec file**: The spec produced in Step 1
-- **Architecture context**: `docs/adr/`, `docs/adr/` (relevant subset), `.claude/CLAUDE.md` (Core Architecture Principles)
+- **Architecture context**: `docs/adr/` (relevant subset), `AGENTS.md`
 
-**2b. Build the spec review prompt**
+**2b. Pick a review backend**
 
-The review prompt lives in `.lok/prompts/spec-review-prompt.md`. No inline prompt needed here.
+Use the first one that is actually present. Review degrades in quality here, not
+to nothing: a spec that no second reader ever saw is the failure this step
+exists to prevent.
 
-**2c. Run AI spec reviews via lok**
-
-Run the lok spec-review workflow:
+**Backend 1 - lok**, if `.lok/workflows/spec-review.toml` exists in this repo.
+The prompt lives in `.lok/prompts/spec-review-prompt.md`; no inline prompt
+needed.
 
 ```bash
 lok run .lok/workflows/spec-review.toml \
   "[SPEC_FILE_PATH]" \
-  "rec-[XX]" \
-  "[LINEAR_TITLE]" \
-  "[LINEAR_DESCRIPTION]" \
-  "[LINEAR_LABELS]" \
+  "[TASK_ID]" \
+  "[TASK_TITLE]" \
+  "[TASK_DESCRIPTION]" \
+  "[TASK_LABELS]" \
   --dir . \
   --verbose
 ```
 
-This produces:
-- `docs/reviews/rec-[XX]-spec-review-gemini.md`
-- `docs/reviews/rec-[XX]-spec-review-ollama.md`
-- `docs/reviews/rec-[XX]-spec-review-synthesis.md`
+It writes `docs/reviews/<task-id>-spec-review-{gemini,ollama,synthesis}.md`.
+Set `phases.spec.review_backend: lok`.
 
-**2c-post. Check review results**
+**Backend 2 - native fan-out**, otherwise. Dispatch two reviewer subagents with
+the `Agent` tool (`subagent_type: general-purpose`) in a single message so they
+run concurrently. Give each the spec file, the context block from 2a, and one
+lens:
 
-Read `docs/reviews/rec-[XX]-spec-review-synthesis.md`.
+- *Testability*: is every Acceptance Criterion specific and measurable, and
+  could someone who has not read this conversation verify it?
+- *Completeness*: what does the Problem Statement leave undefined, and which
+  constraint or edge case would bite during implementation?
 
-- If it contains `NO_REVIEWS_AVAILABLE`: Both models failed. Note "No AI reviews available" and proceed directly to step 2e (checkpoint).
-- If one review file contains `REVIEW_FAILED`: One model failed. Note which and proceed with the available review.
-- If both valid: Proceed with full synthesis.
+Each returns a review ending in a verdict line of
+`APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION`. Write them to
+`docs/reviews/<task-id>-spec-review-<lens>.md`, then write a synthesis to
+`docs/reviews/<task-id>-spec-review-synthesis.md` taking the strictest verdict
+and merging the actionable feedback. Set `phases.spec.review_backend: native`.
+
+**Backend 3 - none**: no reviewer was reachable. Set
+`phases.spec.review_backend: none`, `phases.spec.review_completed: false`, and
+say so at the checkpoint. Do not silently present an unreviewed spec as
+reviewed.
+
+**2c. Check review results**
+
+Read the synthesis file.
+
+- If it contains `NO_REVIEWS_AVAILABLE`: every reviewer failed. Treat as
+  backend `none` and proceed to step 2e (checkpoint).
+- If one review file contains `REVIEW_FAILED`: note which and proceed with the
+  available review.
+- Otherwise: proceed with full synthesis.
 
 Update workflow state:
-- `phases.spec.review_gemini: docs/reviews/rec-[XX]-spec-review-gemini.md`
-- `phases.spec.review_ollama: docs/reviews/rec-[XX]-spec-review-ollama.md`
-- `phases.spec.review_synthesis: docs/reviews/rec-[XX]-spec-review-synthesis.md`
+- `phases.spec.review_backend: [lok | native | none]`
+- `phases.spec.review_reports: [<paths of the individual reviews>]`
+- `phases.spec.review_synthesis: docs/reviews/<task-id>-spec-review-synthesis.md`
+- `phases.spec.review_completed: [true | false]`
 
 **2e. Apply review feedback**
 
@@ -89,7 +114,7 @@ Follow the same pattern as design phase feedback application:
    ```
    REVIEW CONFLICT - Item [N of M]
 
-   Suggestion (from [Gemini|Ollama|both]):
+   Suggestion (from [reviewer name, or "both"]):
      "[exact suggestion text]"
 
    This conflicts with a prior decision:
@@ -158,11 +183,11 @@ Run once before displaying the checkpoint, only if `advisor.enabled` is true and
    Advisor notes: [reasons, or "none"]
 
    ---
-   AI REVIEW RESULTS
+   AI REVIEW RESULTS ([lok | native | none])
 
-   Gemini verdict:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
-   Ollama verdict:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
-   Consensus:       [strictest of both]
+   [reviewer 1]:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
+   [reviewer 2]:  [APPROVE | APPROVE_WITH_SUGGESTIONS | NEEDS_REVISION]
+   Consensus:     [strictest of both]
 
    Auto-applied [N] suggestions:
    - [brief description of each applied change]
@@ -183,10 +208,9 @@ Run once before displaying the checkpoint, only if `advisor.enabled` is true and
    Options:
    1. [approve]  - Spec is approved, start implementation directly
    2. [revise]   - I have feedback (will re-invoke /spec)
-   3. [view-gemini] - View full Gemini review
-   4. [view-ollama] - View full Ollama review
-   5. [upgrade]  - This is more complex than expected, switch to full design-doc workflow
-   6. [pause]    - Pause workflow, continue later
+   3. [view]     - View a full review (lists `phases.spec.review_reports`)
+   4. [upgrade]  - This is more complex than expected, switch to full design-doc workflow
+   5. [pause]    - Pause workflow, continue later
 
    Your choice:
    ```
@@ -207,15 +231,14 @@ Run once before displaying the checkpoint, only if `advisor.enabled` is true and
    - Re-run AI review (return to `status: reviewing`)
    - Return to checkpoint
 
-5. **If view-gemini**: Display `docs/reviews/rec-XX-spec-review-gemini.md`, return to options
-6. **If view-ollama**: Display `docs/reviews/rec-XX-spec-review-ollama.md`, return to options
+5. **If view**: List `phases.spec.review_reports`, display the one chosen, return to options
 
-7. **If upgrade**:
+6. **If upgrade**:
    - Update state: `task_type: development`
    - Reinitialize phases with design + plan
    - **Continue to DESIGN phase**
 
-8. **If pause**:
+7. **If pause**:
    - Save state
    - Exit with resume instructions
 
@@ -230,8 +253,9 @@ Before signaling completion to the dispatcher, verify:
 phases.spec.spec_file: <path>                    # non-null
 phases.spec.approved: true
 phases.spec.status: complete
-phases.spec.review_gemini: <path|null>           # null if review failed/timed out
-phases.spec.review_ollama: <path|null>           # null if review failed/timed out
+phases.spec.review_backend: <lok|native|none>    # which backend actually ran
+phases.spec.review_reports: [<paths>]            # empty array if no reviewer answered
+phases.spec.review_synthesis: <path|null>        # null if no reviewer answered
 phases.spec.review_verdict: <verdict|null>       # null if review failed/timed out
 phases.spec.review_completed: <true|false>       # false if reviews failed/timed out
 phases.spec.review_applied: <true|false>         # false if no reviews or nothing to apply

@@ -68,72 +68,113 @@ Run once before the first write, only if `advisor.enabled` is true and
 
 ---
 
-## Step 5: Codex + Gemini Validation Gate
+## Step 5: Validation Gate
 
-**After implementation is complete, before creating a PR**, run external model validation to catch issues Claude may have blind spots for.
+**After implementation is complete, before creating a PR.** The gate is this
+phase's referee. It has four layers, cheapest and most certain first:
 
-### Run the validation gate via `lok`
+| Layer | What | Binding? |
+|---|---|---|
+| L1 | The task's own acceptance criteria | yes |
+| L2 | `cargo fmt` / `check` / `test` | yes |
+| L3 | `yaml.safe_load` over the YAML we author | yes |
+| L4 | Model review | only when it ran |
 
-The codex + gemini + synthesis pipeline lives in
-`.lok/workflows/implement-gate.toml`. Invoke it and let the workflow engine
-own prompt assembly, parallel reviewer dispatch, output validation, the
-Claude fallback, and the synthesis write. Do **not** reinvent it inline.
+L1-L3 are deterministic and always available. L4 is model judgment and is
+**allowed to be absent**: a repo with no reviewer backend still has a gate.
+This is the one rule that matters, because getting it wrong is what left R0-01
+`ungraded` with every local check green.
+
+Run the layers in order. The runner does not stop at the first failure - it
+reports every layer, so one FAIL cannot hide another - but a FAIL anywhere stops
+the phase.
+
+### Layers 1-3: the deterministic runner
+
+`scripts/gate.sh` owns L2 and L3 and lists L1, whose criteria you run yourself.
 
 ```bash
-# arg.1 = task ID (lowercase),  arg.2 = branch name
-lok workflow run implement-gate rec-XX feat/rec-XX-<slug>
+scripts/gate.sh --task <task-id>          # full tier, at the end of implement
+scripts/gate.sh --task <task-id> --quick  # per-task tier, defers cargo test
 ```
 
-Optional environment overrides:
+Exit codes: `0` PASS, `1` FAIL, `2` INCOMPLETE (a layer could not run, which is
+never a pass).
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `CODEX_MODEL` | `gpt-5.6-sol` | Codex model used for the codex reviewer |
-| `GEMINI_MODEL` | `gemini-3.1-pro-preview` | Primary Gemini model |
-| `GEMINI_FALLBACK_MODEL` | `gemini-3.6-flash` | Used if the primary returns empty |
+**L1 is yours to run.** The runner prints the task file's acceptance criteria
+but cannot execute them: their expected results are stated in prose ("returns
+nothing", "fails for every path"), which is what makes them good criteria and
+bad shell. Run each one verbatim and record the result. A criterion nobody can
+run is a bug in the task file, not a criterion to waive.
 
-Gemini is reached through `opencode run --model "google/$MODEL" --agent plan`.
-The standalone `gemini` CLI is deprecated and must not be called from this
-phase.
+Copy the runner's `GATE SUMMARY` lines into `gate.layers` and set
+`gate.deterministic_verdict` to its verdict. Add history entry `gate_run`
+(details: tier and verdict), or `gate_incomplete` on exit 2.
 
-The workflow writes (and the rest of this step reads):
+### Layer 4: model review (optional)
 
-- `docs/reviews/rec-XX-codex-validation.md`
-- `docs/reviews/rec-XX-gemini-validation.md`
-- `docs/reviews/rec-XX-validation-synthesis.md`
+Pick the first backend that is actually present:
 
-If both external reviewers fail, the workflow runs a Claude fallback into
-`docs/reviews/rec-XX-claude-fallback-validation.md`. Synthesis still runs
-and produces the binding verdict.
+1. **lok**, if `.lok/workflows/implement-gate.toml` exists in this repo:
 
-Anti-pattern (do not do this): writing a scratch script that shells out to
-`codex exec` or `gemini` directly. That bypasses the workflow's output
-validators, fallback logic, and synthesis step, and it hardcodes models that
-drift over time. Always go through `lok`.
+   ```bash
+   # arg.1 = task ID (lowercase),  arg.2 = branch name
+   lok workflow run implement-gate <task-id> <branch>
+   ```
 
-If `lok workflow run` exits non-zero, or any of the three required files is
-missing or empty, treat the gate as failed: do not transition phases. Mark
-the workflow blocked, re-run with `--verbose`, read the reviewer stderr the
-failing step names, fix the root cause, and re-run. Never hand-write a
-review file.
+   The workflow owns prompt assembly, parallel reviewer dispatch, output
+   validation, the Claude fallback, and the synthesis write. Overrides:
+   `CODEX_MODEL` (default `gpt-5.6-sol`), `GEMINI_MODEL` (default
+   `gemini-3.1-pro-preview`), `GEMINI_FALLBACK_MODEL` (default
+   `gemini-3.6-flash`). Gemini is reached through
+   `opencode run --model "google/$MODEL" --agent plan`; the standalone `gemini`
+   CLI is deprecated and must not be called from this phase. Set
+   `gate.llm_layer: lok`.
+
+2. **Native fan-out**, otherwise. Dispatch two reviewer subagents with the
+   `Agent` tool (`subagent_type: general-purpose`) in a single message so they
+   run concurrently. Give each one only the diff (`git diff main...HEAD`), the
+   task file, and one lens:
+
+   - *Correctness*: does this change do what the task says, and what does it
+     break that the tests do not cover?
+   - *Contract*: does the diff stay inside the task's Scope, and does every
+     acceptance criterion actually hold against this code?
+
+   Then dispatch a third subagent to adjudicate: it reads both reviews, drops
+   findings neither can substantiate against the diff, and writes
+   `docs/reviews/<task-id>-validation-synthesis.md` ending in a `## Verdict`
+   line of `approve | approve_with_changes | pivot | rework`. Two reviewers and
+   an adjudicator, not one reviewer: a single model grading its own family of
+   output is the failure mode this layer exists to avoid. Set
+   `gate.llm_layer: native`.
+
+3. **Neither reachable**: set `gate.llm_layer: none`, record why, and grade on
+   L1-L3. Do not set `outcome.status: ungraded` - the gate ran.
+
+Record every report path in `phases.implement.validation_reports`.
+
+Anti-pattern (do not do this): shelling out to `codex exec` or `gemini`
+directly, or hand-writing a review file to make the step pass. That bypasses
+output validation and synthesis, and it manufactures the appearance of a
+referee where there is none. If no backend is reachable, say so in
+`gate.llm_layer` and let L1-L3 do the grading.
 
 ### Display Results
 
 ```
-VALIDATION GATE RESULTS (REC-XX)
-=================================
+VALIDATION GATE (<task-id>)
+===========================
 
-Codex (gpt-5.6-sol):
-  Report: docs/reviews/rec-XX-codex-validation.md
-  Key Findings: [top 3 findings]
+L1 acceptance   [PASS | FAIL]  [n/m criteria met]
+L2 fmt/check/test  [PASS | FAIL | DEFERRED]
+L3 yaml         [PASS | FAIL]
+Deterministic verdict: [PASS | FAIL | INCOMPLETE]
 
-Gemini (gemini-3.1-pro-preview, via opencode):
-  Report: docs/reviews/rec-XX-gemini-validation.md
-  Key Findings: [top 3 findings]
-
-Synthesis (binding):
-  Verdict: [approve | approve_with_changes | pivot | rework]
-  Report: docs/reviews/rec-XX-validation-synthesis.md
+L4 model review ([lok | native | none]):
+  Verdict: [approve | approve_with_changes | pivot | rework | not run]
+  Report:  [docs/reviews/<task-id>-validation-synthesis.md | -]
+  Key findings: [top 3, or "none"]
 
 Options:
 1. [proceed]  - Continue to PR creation
@@ -146,26 +187,35 @@ Your choice:
 
 ### Outcome Loop (grade-and-retry, Checkpoint C)
 
-The binding verdict is the `## Verdict` line at the end of
-`docs/reviews/rec-XX-validation-synthesis.md`. Do not re-derive it by combining
-the raw reviewer reports: they are inputs to synthesis, not graders in their own
-right. Map it onto the loop states below.
+Combine the deterministic verdict with L4 into one loop state. The
+deterministic layers outrank the model: they cannot be argued with.
 
-| Synthesis verdict | Loop state |
-|---|---|
-| `approve` | PASS |
-| `approve_with_changes` | PASS_WITH_NOTES |
-| `pivot`, `rework` | FAIL |
+| L1-L3 | L4 verdict | Loop state |
+|---|---|---|
+| FAIL | any | FAIL |
+| INCOMPLETE | any | `ungraded` - a binding layer did not run |
+| PASS | not run (`llm_layer: none`) | PASS |
+| PASS | `approve` | PASS |
+| PASS | `approve_with_changes` | PASS_WITH_NOTES |
+| PASS | `pivot`, `rework` | FAIL |
+
+When L4 ran, its binding verdict is the `## Verdict` line at the end of
+`docs/reviews/<task-id>-validation-synthesis.md`. Do not re-derive it by
+combining the raw reviewer reports: they are inputs to synthesis, not graders in
+their own right.
 
 Then, if `outcome.max_iterations` is `0`, skip the loop and go straight to
 the human menu below (Step-5 behaves as it did before this feature).
 
 Otherwise run:
 
-1. **Grader unavailable** (the synthesis report is missing, empty, or reads
-   `NO_REVIEWS_AVAILABLE` after the Claude fallback also failed): set
-   `outcome.status: ungraded`, add history `outcome_ungraded`, and go to the
-   human menu. Do not iterate without a grader.
+1. **Grader unavailable.** This means `gate.deterministic_verdict` is
+   `INCOMPLETE` - `scripts/gate.sh` exited 2 because a binding layer could not
+   run. Set `outcome.status: ungraded`, add history `outcome_ungraded`, and go
+   to the human menu. Do not iterate without a grader.
+
+   A missing L4 is **not** this case. If L1-L3 produced PASS or FAIL, the gate
+   graded the work and the loop proceeds normally.
 2. **Combined verdict PASS or PASS_WITH_NOTES:** set `outcome.status: satisfied`,
    add history `outcome_satisfied`, and continue to `### Transition to PR`.
 3. **Combined verdict FAIL:**
@@ -189,10 +239,10 @@ Otherwise run:
    d. The **session model** applies the scoped fix inline, commits it, and appends
       the new SHA to `phases.implement.commits`; add history `commit_created`.
    e. Log one line to the user: `Outcome iteration <n>/<max>: FAIL on <finding> -> applied <fix>`.
-   f. Re-run the gate: `lok workflow run implement-gate rec-XX feat/rec-XX-<slug>`.
-      The workflow owns its prompt, so the re-run is full rather than scoped to the
-      previously-failing findings; it re-reads the updated diff and overwrites the
-      three review files. Return to step 1 with the new synthesis verdict.
+   f. Re-run the whole gate, L1 through L4, against the updated diff - not just
+      the layer that failed. A fix for an acceptance criterion routinely breaks a
+      test, and a scoped re-run would not see it. Return to step 1 with the new
+      verdicts.
 
 ### Human Menu (reached on exhausted or ungraded)
 
@@ -206,28 +256,29 @@ Display the existing results block, then:
   set `outcome.status: waived`, log history `waiver` with the reason, and proceed.
 - **pause**: save state and exit.
 
-### Fallback
+### Degradation
 
-Reviewer degradation is handled inside the workflow, not here. Its
-`health_check` step probes each backend, a failed reviewer emits
-`REVIEW_FAILED` and synthesis proceeds on whoever answered, and if both
-external reviewers fail the `claude_fallback` step supplies the review that
-feeds synthesis. Do not substitute your own reviewer for a failed one.
+Degradation is layered, and each layer degrades differently:
 
-The only case this step handles is the workflow not producing a usable
-synthesis at all: `lok workflow run` exits non-zero, or the synthesis file is
-missing, empty, or reads `NO_REVIEWS_AVAILABLE`. Then the outcome loop sets
-`outcome.status: ungraded` and routes to the Human Menu.
+- **A reviewer inside L4 fails.** When lok runs it, its `health_check` probes
+  each backend, a failed reviewer emits `REVIEW_FAILED`, and synthesis proceeds
+  on whoever answered. When the native fan-out runs it, adjudicate on the
+  reviews that returned. Do not substitute your own review for a failed one.
+- **All of L4 fails.** Set `gate.llm_layer: none` with the reason and grade on
+  L1-L3. This is a weaker gate, not an absent one.
+- **A binding layer cannot run** (`scripts/gate.sh` exits 2: no cargo, no
+  pyyaml, no task file to read criteria from). This is the only `ungraded` case.
+  Fix the environment rather than proceeding: an unrunnable referee is the
+  problem, not the verdict.
 
 ### Update State
 
-- `phases.implement.codex_validated: true`
-- `phases.implement.codex_verdict: [verdict]`
-- `phases.implement.codex_report: docs/reviews/rec-XX-codex-validation.md`
-- `phases.implement.gemini_validation_report: docs/reviews/rec-XX-gemini-validation.md`
-- `phases.implement.validation_synthesis_report: docs/reviews/rec-XX-validation-synthesis.md`
-- `phases.implement.validation_synthesis_verdict: [approve | approve_with_changes | pivot | rework]`
-- Add history entry: `codex_validation_complete`
+- `phases.implement.gate_run: true`
+- `phases.implement.validation_reports: [<paths>]` (empty if L4 did not run)
+- `gate.layers: [{layer, verdict, note}, ...]` from the runner's summary
+- `gate.deterministic_verdict: [PASS | FAIL | INCOMPLETE]`
+- `gate.llm_layer: [lok | native | none]`
+- Add history entry: `gate_run` (details: tier and verdict)
 - `outcome.status` (`satisfied` | `exhausted` | `waived` | `ungraded`)
 - `outcome.iteration` (final count)
 
@@ -246,6 +297,7 @@ Before signaling completion to the dispatcher, verify:
 - `phases.implement.status: complete`
 - `phases.implement.commits` is non-empty
 - History contains `implementation_complete`
-- `phases.implement.codex_validated` is set (true if ran, false if skipped/unavailable)
+- `phases.implement.gate_run` is true and `gate.deterministic_verdict` is resolved
+- `gate.llm_layer` names which backend ran, including `none`
 - `outcome.status` is resolved (not `pending`) when `outcome.max_iterations > 0`
 - Any loop fix commits appear in `phases.implement.commits`
