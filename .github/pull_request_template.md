@@ -1,16 +1,9 @@
 ## PR Type
 
-- [ ] Spec only
 - [ ] Implementation
 - [ ] Bugfix
-- [ ] Release/docs/process
-
-Tier: standard
-enforcement_sensitive: false
-
-`enforcement_sensitive` is machine-checked against `workflow.yaml`. Change it
-to `true` when the diff or linked spec matches the sensitive registry. There is
-no fast path for sensitive work.
+- [ ] Docs/process
+- [ ] Release
 
 ## What
 
@@ -20,41 +13,31 @@ Brief description of changes.
 
 Why is this change needed?
 
-## Issue Links
+## Task
 
-- Refs #
-- Closes #
+For `docs/tasks/` work, name the task and paste the gate verdict:
 
-Spec-only PRs must use `Refs #...`, not `Closes` / `Fixes` / `Resolves`,
-unless the linked issue is explicitly only about writing the spec. Runtime or
-user-visible work must close an implementation issue, not a spec issue.
+- Task:
+- `scripts/gate.sh --task <id>` verdict:
 
-## Spec Lifecycle
+The gate is a **local** referee; CI does not invoke it, so nothing blocks a
+merge on it. It exits `0` on pass, `1` on failure, and `2` when a layer could
+not run, which is never a pass.
 
-- [ ] If adding/updating `docs/specs/<id>/`, updated `docs/specs/README.md`
-- [ ] If this is spec-only, linked or created implementation issue(s)
-- [ ] If this is implementation, updated relevant spec, README, API docs, or wrote why not needed
-- [ ] If touching `src/api/**`, updated `docs/specs/SPEC-web-api.md` or wrote an explicit API docs waiver with rationale
+CI covers the same ground for the compiler and test suite. What it does not
+cover is the task's acceptance criteria: the gate prints them without running
+them, so a PASS says nothing about whether they hold. List each criterion and
+its actual output below.
+
+- Acceptance criteria, with output:
 
 ## Test Plan
 
-- [ ] Tests pass
-- [ ] Tested manually
-
-## Review Gate
-
-- Final head SHA:
-- Independent review artifact or run:
-- Review completed at:
-- Prior findings carried forward and resolved/obsolete with evidence:
-- Actionable review threads resolved by an authorized reviewer or maintainer:
-
-These fields summarize evidence; `checks/pr_gate.py` and the underlying review
-artifact remain authoritative. A checked box or prose-only claim is not proof.
+- [ ] `cargo fmt --check`, `cargo check`, `cargo test` pass
+- [ ] Acceptance criteria verified, with output
+- [ ] Tested manually where behavior is user-visible
 
 ## Merge Gate
 
 - [ ] Required `check` is green on the final head
-- [ ] Exact-head PR gate decision is `allowed`
-- [ ] Merge authorization is recorded
-- [ ] External-App/org-required-workflow trust root is active, or the advisory-only gap is explicit
+- [ ] Review findings resolved, or recorded with a reason

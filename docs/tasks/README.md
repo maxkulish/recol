@@ -75,5 +75,15 @@ pushes to `main` are green because every governance step is gated on
 **Start with R0-02.** Its blockers, 00 and 01, are both done, and it removes
 what keeps every pull request red.
 
+A warning from running it: R0-02's diff came to roughly three times its Scope
+checklist. The scope and the acceptance criteria were both drawn from the same
+survey of `.github/` and `scripts/`, so the criteria inherited the survey's
+blind spot - every one of them passed green over a tree containing a module
+that imported a deleted package. Searching outside those paths found `tools/`,
+`skills/`, `AGENT_USAGE.md`, `templates/`, `review/`, `integrations/`, root
+`schemas/` and `artifacts/`. When a task's criteria search only where its scope
+was drawn from, they cannot detect an incomplete scope. Read the file lists in
+`docs/plan/` as a starting survey, not a complete one.
+
 **03 and 08 are unblocked** and depend on none of this, so they can run
 alongside R0-02.

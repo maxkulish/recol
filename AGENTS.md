@@ -12,7 +12,7 @@ remem 的目标是做最强的 Claude Code / Codex 记忆系统，不是最便�
 2. Read `README.md` for user-facing behavior and `docs/ARCHITECTURE.md` for current runtime/data-flow context.
 3. Read `docs/specs/README.md` before treating any old `docs/specs/*.md` file as pending work. Most historical specs have been implemented, superseded, or absorbed into the current architecture.
 4. For Codex plugin/runtime work, also read `plugins/remem/README.md`, `plugins/remem/skills/remem/SKILL.md`, and the version-sync files listed below.
-5. Use repo-local skills under `skills/` and `.agents/skills/` when a task matches one.
+5. Use repo-local skills under `.agents/skills/` when a task matches one.
 6. Search existing code and docs before creating new files. Similar-file creation without search is not acceptable.
 
 ## Core Rules
@@ -27,32 +27,25 @@ remem 的目标是做最强的 Claude Code / Codex 记忆系统，不是最便�
 
 Use specs as contracts only after checking their status in `docs/specs/README.md`.
 
-## SpecRail Workflow
+Current implementation contracts live under `docs/specs/`; update those when a
+change modifies the behavior they already govern. `specs/GH<issue-number>/` is
+a historical packet directory inherited from upstream and is not a destination
+for new work.
 
-This repository adopts SpecRail when `skills-lock.json` and
-`skills/specrail-workflow/SKILL.md` are present.
+Task work is tracked in `docs/tasks/` and `project.md`, and run through
+`/task:orchestrate`. A task file is its own spec, and its acceptance criteria
+are the standard the change is judged against.
 
-For SpecRail-governed issue, PR, CI, and release work:
+`scripts/gate.sh` does **not** run them. Their expected results are stated in
+prose - "returns nothing", "fails for every path" - which is what makes them
+good criteria and bad shell, so layer L1 reports `MANUAL` and the gate can exit
+`0` with every criterion still unverified. A PASS means the compiler, the test
+suite and the YAML parsed. Running the criteria and recording their output is
+yours.
 
-1. Start with `skills/specrail-workflow/SKILL.md` only.
-2. After the route is known, load exactly one focused SpecRail skill such as
-   `specrail-triage-issue`, `specrail-write-product-spec`,
-   `specrail-write-tech-spec`, `specrail-plan-tasks`, `specrail-implement`,
-   `specrail-review-pr`, `specrail-diagnose-ci`, `specrail-pr-gate`, or
-   `specrail-release-note`.
-3. Read `AGENT_USAGE.md`, `workflow.yaml`, `states.yaml`, `labels.yaml`, and
-   the relevant template before writing SpecRail artifacts.
-4. Run `python3 checks/route_gate.py --repo . --route <route> ... --json` when
-   the route has enough issue or PR evidence.
-
-SpecRail's new issue packets live under `specs/GH<issue-number>/` with
-`product.md`, `tech.md`, and `tasks.md`. Existing remem implementation
-contracts stay under `docs/specs/`; update those current contracts when a
-change modifies the behavior they already govern. Do not copy old
-`docs/specs/` files into SpecRail packets unless the linked issue requires it.
-
-SpecRail never removes the human gates for readiness labels, spec approval,
-final PR review, security decisions, merge, or release.
+Agents may draft, implement, diagnose, and review. Agents must not give final
+approval, merge, force-push, publish private security details, or bypass
+review, security, or release gates.
 
 | Change | Required path |
 |---|---|
@@ -62,10 +55,10 @@ final PR review, security decisions, merge, or release.
 | Historical `SPEC-*.md` says "proposed" or "active" | Check `docs/specs/README.md` and current code first; many are historical implementation references |
 | Old refactor-step specs | Treat `docs/specs/refactor-steps/` as completed historical split contracts unless current code proves drift |
 
-Spec-only PRs must use `Refs #...`, not `Closes` / `Fixes` / `Resolves`,
-unless the linked issue is explicitly only about writing the spec. Runtime
-capabilities close implementation issues after code, tests, docs, and smoke
-checks land. See `docs/specs/spec-lifecycle-governance/`.
+Issues are disabled on this repository, so pull requests link no issue and the
+`Refs` / `Closes` distinction that upstream enforced does not apply. The
+machine check behind it is gone. `docs/specs/spec-lifecycle-governance/` is
+retained as a historical contract, not as an active rule.
 
 ## High-Risk Areas
 
@@ -135,7 +128,10 @@ Use focused tests first for narrow fixes, then the broader gate when practical. 
 
 ## Documentation Rules
 
-- Keep root Markdown limited to entry, governance, and contribution docs.
+- Keep root Markdown limited to entry, governance, and contribution docs, plus
+  `project.md`. The board is deliberately at the root because it is the first
+  file to read and the one `docs/tasks/README.md` points at for status; it is
+  the single exception, not licence for more.
 - Put current implementation specs under `docs/specs/`; add an index/status entry when adding a spec.
 - Put research/comparison/marketing material under `docs/research/`, `docs/analysis/`, or `docs/marketing/`.
 - Do not silently modify high-context files (`AGENTS.md`, `CLAUDE.md`, plugin skills, hooks/config docs) through generators or dependency output.

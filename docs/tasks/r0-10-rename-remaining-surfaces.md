@@ -29,12 +29,17 @@ recorded results.
 `check_public_surface.py` and `check_public_claims.py` are **retargeted**, not
 deleted. They are what would have caught the frozen-`site/` mistake.
 
+Root `schemas/` was dropped from Scope during R0-02: all 14 files were SpecRail
+governance artifacts and went with the rest of that machinery. The eval schemas
+the Rust code actually loads live under `eval/public/schemas/` and were never
+in this task's list.
+
 ## Scope
 
 - [ ] `site/`, `eval/local/run_local_eval.py`, `eval/locomo/run_locomo.py`
 - [ ] `.agents/skills/remem-first-run-smoke/` and
       `.agents/skills/remem-plugin-version-sync/`, directories included
-- [ ] `assets/`, `prompts/`, `schemas/`, the tracked `.remem/` directory
+- [ ] `assets/`, `prompts/`, the tracked `.remem/` directory
 - [ ] Current architecture, plugin, and release documents under `docs/`;
       historical audits untouched
 - [ ] Retarget `check_public_surface.py` and `check_public_claims.py` to the new

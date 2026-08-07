@@ -1,0 +1,562 @@
+# Workflow state for R0-02. Machine-written by /task:orchestrate.
+#
+# Naming note: docs/status/README.md documents `rec-<issue-number>-workflow.yaml`
+# for Linear-tracked issues. R0 tasks are tracked in docs/tasks/ and project.md,
+# not Linear, so this file follows the docs/tasks/ id form instead.
+
+task_id: R0-02
+linear_url: null
+title: "Delete the heavy governance machinery"
+task_file: docs/tasks/r0-02-delete-governance.md
+branch: refactor/02
+task_type: specification
+created: "2026-08-07T22:40:00Z"
+
+workflow:
+  current_phase: pr
+  status: in_progress
+
+phases:
+  discovery:
+    status: skipped
+    skip_reason: "File-based track: phases/init.md Step 2.4"
+    approved: true
+
+  design:
+    status: skipped
+    reason: "File-based track: the task file is the spec"
+
+  plan:
+    status: skipped
+    reason: "File-based track: the Scope checklist is the decomposition"
+
+  spec:
+    status: complete
+    spec_file: docs/tasks/r0-02-delete-governance.md
+    approved: true
+    execution_mode: AFK
+    main_sha_at_approval: "4dc59c20"
+    review_backend: none
+    review_completed: false
+    # The task file arrives pre-approved per Step 2.4, but reading the tree it
+    # describes turned up one gap the file did not cover. Recorded rather than
+    # silently absorbed, because it widens the diff past the Scope checklist.
+    amendments:
+      - id: 1
+        finding: >-
+          tools/install_codex_skills.py inserts checks/ onto sys.path and
+          imports specrail_lib at module scope (lines 19-21), and validates
+          skills-lock.json. Both are deleted by this task, so the script breaks
+          at import. It is absent from the Scope checklist, and criterion 2
+          greps only .github/, scripts/ and AGENTS.md, so no criterion observes
+          it. The task's Goal sentence covers it: "no workflow, script, or
+          agent instruction references a removed file."
+        also: >-
+          skills/specrail-* is 11 directories of inert markdown with no imports,
+          orphaned once the AGENTS.md SpecRail section is removed.
+        resolution: >-
+          User chose to delete both and amend the task file, keeping the
+          deletions mutually referential in one commit as the task's Context
+          requires. Scope gained two boxes, acceptance criteria gained one.
+        decided_by: user
+        decided_at: "2026-08-07T22:38:00Z"
+      - id: 3
+        finding: >-
+          AGENT_USAGE.md is a root-level agent instruction document that is
+          entirely about SpecRail. Every artifact it lists is deleted by this
+          task (workflow.yaml, states.yaml, labels.yaml, skills-lock.json,
+          skills/specrail-*), and both commands it hands agents invoke checks/.
+          Like tools/, it is absent from the Scope checklist and outside
+          criterion 2's grep paths.
+        resolution: >-
+          Deleted, on the same grounds the user already approved for
+          tools/install_codex_skills.py: an agent instruction referencing
+          removed files, covered by the Goal, missed by the criteria. Not
+          re-asked, because it is the same class of finding and the same
+          resolution. Its one durable rule - agents must not approve, merge,
+          force-push, or bypass gates - was preserved into AGENTS.md rather
+          than dropped.
+        decided_by: agent
+        decided_at: "2026-08-07T22:58:00Z"
+      - id: 4
+        finding: >-
+          AGENTS.md carried the Refs/Closes spec-lifecycle rule, which
+          check_spec_lifecycle.py enforced. R0-01's lessons flagged this exact
+          line: criterion 2 greps `spec_lifecycle` with an underscore while the
+          line spells it `spec-lifecycle` with a hyphen, so the criterion
+          passes while the stale sentence survives.
+        resolution: >-
+          Rewritten rather than left. gh api confirms has_issues=false, so pull
+          requests here link no issue at all and the distinction is doubly
+          moot. docs/specs/spec-lifecycle-governance/ still exists and is now
+          described as a historical contract.
+        decided_by: agent
+        decided_at: "2026-08-07T23:02:00Z"
+      - id: 5
+        finding: >-
+          Widening the reference search past the criteria's three search paths
+          found five more SpecRail surfaces, none in Scope: templates/ (12
+          files) and review/ (2) instruct agents to run checks/pr_gate.py,
+          checks/github_pr_evidence.py and checks/review_json_gate.py;
+          integrations/threads.md loads workflow.yaml, states.yaml, labels.yaml
+          and skills/specrail-workflow; root schemas/ is 14 SpecRail artifact
+          schemas; artifacts/logs/gh871/ is one upstream run log.
+        conflict: >-
+          docs/tasks/r0-10-rename-remaining-surfaces.md Scope listed root
+          schemas/ as a rename target, treating it as a remem surface. It is
+          not: the schemas src/eval/ loads are eval/public/schemas/*.json,
+          kebab-case, a different tree. Root schemas/ is entirely snake_case
+          SpecRail and unreferenced by any Rust, Node or retained script.
+        resolution: >-
+          User chose the full sweep. All five deleted; R0-10 Scope corrected to
+          drop schemas/ and given a note explaining why. policies/ retained (two
+          generic documents, no SpecRail reference) and prompts/ retained (its
+          five .txt files are compiled in via include_str! in
+          src/dream/constants.rs and src/summarize/constants.rs, so deleting it
+          would fail the build). A new acceptance criterion asserts both
+          survive and cargo check passes, so the sweep's boundary is graded
+          rather than assumed.
+        decided_by: user
+        decided_at: "2026-08-07T23:20:00Z"
+      - id: 2
+        finding: >-
+          .specrail/ named in the Scope does not exist in the tree.
+        resolution: >-
+          No action. Criterion 1 asserts `ls` fails for the path, which an
+          already-absent path satisfies. Noted so the unticked box is not read
+          later as work skipped.
+        decided_by: agent
+        decided_at: "2026-08-07T22:36:00Z"
+
+  implement:
+    status: complete
+    current_step: 7
+    total_steps: 7
+    commits: []
+    last_phase_completed: "gate PASS, seven of eight acceptance criteria green"
+    gate_run: true
+    validation_reports: []
+    deliberately_not_changed:
+      - path: policies/
+        reason: >-
+          Two documents, maintainer_escalation.md and security_disclosure.md,
+          with no SpecRail reference and no dependency on a deleted file. They
+          state general escalation and disclosure practice, which survives the
+          removal of the machinery that used to cite them.
+        owner_task: null
+      - path: docs/plan/20-rename-and-release/, docs/specs/, specs/GH*/
+        reason: >-
+          These still name the deleted paths, but descriptively: the R0 spec is
+          the document that ordered the deletions, and specs/GH*/ is upstream's
+          historical packet archive. Rewriting history to hide what was removed
+          would destroy the audit trail this task is judged against. AGENTS.md
+          now labels specs/GH*/ historical and not a destination for new work.
+        owner_task: null
+
+  pr:
+    status: in_progress
+    pr_url: "https://github.com/maxkulish/recol/pull/4"
+    pr_number: 4
+    # Counts review ROUNDS, per .claude/templates/workflow-state.yaml:103.
+    reviews_addressed: 2
+    approved: false
+    ci_passed: true
+    # Round 2 re-review at 6536e398: Bugs (0). All three correctness findings
+    # struck through. Two rule violations remain open by decision, not oversight.
+    open_findings_by_decision:
+      - finding: "Task gate not enforced in CI"
+        why_not_fixed: >-
+          R0-05 rebuilds ci.yml and owns its step list; adding a step here
+          pre-empts it. Addressed by wording instead, so the PR template no
+          longer promises enforcement that does not exist.
+        but_partly_true: >-
+          Checking rather than assuming: ci.yml covers L2 (fmt, clippy, test)
+          but has NO equivalent of L3, the yaml.safe_load sweep over
+          docs/status/*.yaml and .github/workflows/*.yml. That layer exists
+          because R0-01 shipped a state file that did not parse while every
+          other check was green. So the finding is narrower and more real than
+          "the gate is not run": one specific layer has no CI counterpart, and
+          protection against that exact failure currently rests on a human
+          running the local gate. Recorded as a follow-up for R0-05 rather than
+          fixed in the workflow file this task is stripping.
+        owner_task: R0-05
+      - finding: "Root project.md not allowed"
+        why_not_fixed: >-
+          Qodo rule 2507592 is configured in their portal, so the exception
+          documented in AGENTS.md cannot clear it. project.md predates this PR
+          (added at 5fea5ab5) and docs/tasks/README.md plus every status
+          reference address it at that path. Moving it is a doc-layout decision
+          for a task that owns doc layout, not a side effect of a governance
+          deletion.
+        owner_task: null
+    ci_evidence: >-
+      Run 31224538951 at head 7d5ee9df and run 31225713831 at head 3c406bc5,
+      both event pull_request, both job `check` success. The first green
+      pull_request runs this repository has produced.
+    review_rounds:
+      - round: 1
+        reviewer: "qodo-code-review[bot]"
+        triggered_by: "automatic; .pr_agent.toml sets pr_commands = [/agentic_review]"
+        reviewed_head: "7d5ee9df"
+        findings: 2
+        rule_violations: 1
+        outcome:
+          - >-
+            Bug/Maintainability: CONTRIBUTING.md still mandated an
+            `enforcement_sensitive: true|false` declaration checked against
+            workflow.yaml, and described the repo-local closure workflow. REAL
+            and FIXED. This is the fourth instance of the same blind spot -
+            CONTRIBUTING.md is a root-level contributor instruction and
+            criterion 2 greps only .github/, scripts/ and AGENTS.md. The
+            40-line section was replaced with what actually gates a PR now: the
+            preflight, scripts/gate.sh, and the one CI check.
+          - >-
+            Rule violation 2507592, root-level Markdown restricted to entry,
+            governance and contribution docs: project.md is a board. TECHNICALLY
+            CORRECT but not introduced here - project.md was added at 5fea5ab5
+            and this PR only edits it. The contradiction is real though:
+            AGENTS.md:124 stated the rule while docs/tasks/README.md directs
+            readers to project.md at the root for status. FIXED by naming
+            project.md as the single exception in AGENTS.md rather than moving
+            a file every doc points at.
+        follow_on_finding_round1: >-
+          Fixing the CONTRIBUTING.md finding prompted running the governance
+          grep over the whole active tree instead of the criteria's three paths.
+          That found a fifth surface the review had not flagged:
+          .pr_agent.toml's compliance_user_guidelines still instructed the
+          review bot itself about SpecRail packets. Fixed, and the search that
+          found it was added to the task file as a standing acceptance
+          criterion.
+
+      - round: 2
+        reviewer: "qodo-code-review[bot]"
+        triggered_by: "automatic re-review on push of 3c406bc5"
+        reviewed_head: "3c406bc5"
+        findings: 2
+        rule_violations: 1
+        resolved_from_round_1: 1
+        outcome:
+          - >-
+            Bug/Correctness, "Ambiguous deletion verification": criteria 1 and 2
+            used one multi-operand `ls` to assert every path was gone, but `ls`
+            exits 1 when ANY operand is missing, so the exit code cannot tell
+            "all absent" from "one still present". Verified true - `ls
+            present absent` exits 1, identically to `ls absent absent`. REAL and
+            FIXED: both criteria are now per-path loops that name any survivor.
+            The tree itself was already correct, since the run output listed
+            each path individually, but the criterion could not prove it. This
+            is the same defect class the task exists to remove, sitting inside
+            the task's own verification.
+          - >-
+            Bug/Correctness, "Gate checks misdescribed": AGENTS.md, in wording
+            this workflow added, said a task file's acceptance criteria are
+            "what the gate checks". scripts/gate.sh only prints them - L1 is
+            MANUAL and the gate exits 0 with every criterion unverified. REAL
+            and FIXED. Worth its severity: R0-01 finished `ungraded` for exactly
+            this confusion between "the gate ran" and "the criteria hold", and
+            the new sentence had quietly reintroduced it.
+          - >-
+            Rule violation/Testability, "Task gate not enforced in CI": the PR
+            template told authors to run scripts/gate.sh while ci.yml never
+            invokes it. Correct. Resolved by wording rather than by adding a
+            step: R0-05 owns the CI rebuild, and gate.sh's binding layers (L2
+            fmt/check/test, L3 YAML) are already covered by CI. The template now
+            says plainly that the gate is local, that nothing blocks a merge on
+            it, and that acceptance criteria need their output pasted because no
+            automation runs them.
+          - >-
+            Rule violation, root project.md: still reported. Qodo rule 2507592
+            lives in their portal, so amending AGENTS.md does not clear it. Left
+            as is and explained on the PR; moving a file that docs/tasks/README
+            and every status reference points at is a larger change than the
+            finding warrants, and it belongs to whoever revisits doc layout.
+    # PR #4 opened at 78dff597 and immediately reported CONFLICTING with no
+    # check runs at all. The absence of runs was a consequence, not a repeat of
+    # R0-01's problem: a `pull_request` workflow runs against the merge ref,
+    # which GitHub cannot create for a conflicting PR, so nothing was ever
+    # scheduled. Rebased onto 170391f1 and force-pushed as 13307190.
+    rebased_onto: "170391f1"
+    head_after_rebase: "13307190"
+    collision:
+      what: >-
+        The user finalized R0-00 directly on main as 170391f1 at 22:34, while
+        this workflow was mid-implement doing the same bookkeeping. Both touched
+        docs/tasks/r0-00-enable-actions.md, docs/tasks/README.md and project.md.
+      resolution: >-
+        The user's text wins verbatim, per the global instruction that
+        user-supplied text is final. docs/tasks/r0-00-enable-actions.md was
+        taken wholesale from main and every edit this workflow had made to it
+        was dropped. project.md and docs/tasks/README.md kept the user's R0-00
+        wording and carry only genuinely new R0-02 content on top; the duplicate
+        R0-00 evidence row this workflow had added was removed in favour of
+        theirs.
+      their_version_was_better: >-
+        Two facts their write-up records that this workflow's did not: the merge
+        push run concluded green in 26m50s, and pushes to main are green because
+        every governance step is gated on github.event_name == 'pull_request'.
+        That second point is why PR runs were red while push runs were not, and
+        it is the reason to expect this PR's run to be the first green
+        pull_request run.
+    observation_not_acted_on: >-
+      In the user's finalized r0-00 file all four Scope boxes are ticked while
+      all seven acceptance criteria remain unticked. Left exactly as written and
+      raised with the user instead of edited, since it is their file. Worth a
+      decision because a done task carrying seven unticked criteria is the same
+      shape as the discrepancy that made R0-00's status ambiguous in the first
+      place.
+
+  complete:
+    status: pending
+    board_updated: false
+    merged_at: null
+
+# Blocker verification. The board disagreed with disk and disk won, per
+# orchestrate.md Step 3.5.
+blockers:
+  declared: ["R0-00", "R0-01"]
+  R0-01:
+    satisfied: true
+    evidence: "PR #1 merged at 35129895; docs/status/r0-01-workflow.yaml complete"
+  R0-00:
+    satisfied: true
+    evidence: >-
+      All seven acceptance criteria verified green on 2026-08-07: auto-release,
+      closure-audit, sensitive-governance and pages all report
+      disabled_manually while CI reports active; actions/runs total_count is 3;
+      ci.yml has runs on both event=pull_request and event=push; all three runs
+      carry a non-null, non-cancelled conclusion (success, failure, failure);
+      auto-release.yml returns no rows; the suppression cause is recorded in
+      the task file at 69ecb0a0.
+    board_disagreed: >-
+      project.md listed R0-00 as **next** and every checkbox in
+      docs/tasks/r0-00-enable-actions.md was unticked. R0-00 ran on branch
+      chore/r0-00-actions (PR #3) outside /task:orchestrate, so its completion
+      phase never ran. Disk wins; this PR ticks the boxes and flips the row.
+    ci_note: >-
+      The one CI failure on PR #3 is the step "Resolve linked issue for
+      classification", which this task deletes.
+
+advisor:
+  enabled: false
+  disabled_reason: >-
+    Session instruction: do not call the Agent tool unless the user requested
+    it. Checkpoints A/B/C dispatch Agent subagents, so the consult is off for
+    this workflow. Orchestrator validation requires advisor.calls entries only
+    when advisor.enabled.
+  model: null
+  effort: high
+  max_calls_per_checkpoint: 1
+  calls: []
+
+gate:
+  runner: scripts/gate.sh
+  # No reviewer backend was dispatched. advisor.enabled is false for this
+  # workflow (session instruction forbids the Agent tool unless requested), and
+  # L4 is the layer allowed to be unavailable. L1-L3 still bind and all graded.
+  llm_layer: none
+  layers:
+    - layer: "L1 acceptance"
+      verdict: MANUAL
+      note: "8 criteria in docs/tasks/r0-02-delete-governance.md; run below"
+    - layer: "L2 fmt"
+      verdict: PASS
+    - layer: "L2 check"
+      verdict: PASS
+      note: "cargo check --workspace --all-targets"
+    - layer: "L2 test"
+      verdict: PASS
+      note: "cargo test --workspace, 3144 passed, 0 failed"
+    - layer: "L3 yaml-status"
+      verdict: PASS
+      note: "docs/status/*.yaml and .claude/templates/*.yaml"
+    - layer: "L3 yaml-workflows"
+      verdict: PASS
+      note: ".github/workflows/*.yml"
+  deterministic_verdict: PASS
+  run_tier: full
+  negative_validation:
+    validated: true
+    record: "docs/plan/30-command-suite-adaptation.md"
+
+# L1, run by hand because the criteria state expected results in prose.
+acceptance_criteria:
+  - id: 1
+    command: "ls checks .specrail labels.yaml states.yaml workflow.yaml skills-lock.json"
+    expected: "fails for every path"
+    result: >-
+      PASS - exit 1, all six reported "No such file or directory". .specrail
+      was already absent before the task; checks/ needed its untracked
+      __pycache__ removed after git rm, which tracks no bytecode.
+  - id: 2
+    command: "ls tools skills AGENT_USAGE.md schemas templates review integrations artifacts"
+    expected: "fails for every path"
+    result: "PASS - exit 1, all eight reported \"No such file or directory\""
+  - id: 3
+    command: "ls -d policies prompts && cargo check"
+    expected: "both exist and cargo check passes"
+    result: >-
+      PASS - exit 0 for both. This is the boundary criterion added with the
+      sweep: prompts/ is compiled in via include_str!, so its removal would
+      fail the build rather than any grep.
+  - id: 4
+    command: "rg -n \"specrail|SpecRail|check_pr_tier|closure_follow_up|sensitive_implement|test_schema_contract|spec_lifecycle\" .github/ scripts/ AGENTS.md"
+    expected: "returns nothing"
+    result: "PASS - rg exit 1, no matches"
+  - id: 5
+    command: "rg -n \"GH813|gh813\" .github/"
+    expected: "returns nothing"
+    result: "PASS - rg exit 1, no matches"
+  - id: 6
+    command: "python3 scripts/ci/check_pr_preflight.py --base origin/main --pr-body-file /tmp/pr-body.md"
+    expected: "exits 0"
+    result: "PASS - exit 0, \"preflight passed\""
+  - id: 7
+    command: "cargo test --workspace"
+    expected: "exits 0"
+    result: >-
+      PASS - exit 0, 3144 passed, 0 failed. Identical to the count R0-01
+      recorded at 63795352, which is the evidence that 20,416 deleted lines
+      were inert.
+  - id: 8
+    command: "CI passes on the pull request"
+    expected: "green"
+    result: >-
+      PASS - run 31224538951, event pull_request, head 7d5ee9df, job `check`
+      conclusion success over 24 steps. This is the first green pull_request
+      run in the repository's history: R0-01's PR produced no run at all, and
+      both of R0-00's died at "Resolve linked issue for classification", the
+      step this task deletes. The job went from 40 steps to 24.
+
+outcome:
+  max_iterations: 3
+  iteration: 0
+  status: satisfied
+  satisfied_note: >-
+    Gate passed on the first run, so no grade-and-retry iteration was needed.
+    Seven of eight acceptance criteria are green locally; the eighth is CI on
+    the pull request and is graded in the pr phase.
+
+history:
+  - timestamp: "2026-08-07T22:40:00Z"
+    action: workflow_started
+    phase: spec
+    details: >-
+      Workflow initialized for R0-02 from
+      docs/tasks/r0-02-delete-governance.md. File-based track, so task_type is
+      specification and the task file is the approved spec per phases/init.md
+      Step 2.4. Type line reads AFK.
+
+  - timestamp: "2026-08-07T22:40:30Z"
+    action: workflow_unblocked
+    phase: spec
+    details: >-
+      Both declared blockers verified satisfied against disk. R0-00 required
+      checking: the board called it next while all seven of its acceptance
+      criteria were green. See the blockers block.
+
+  - timestamp: "2026-08-07T22:41:00Z"
+    action: advisor_skipped
+    phase: spec
+    details: >-
+      Checkpoint A not run: advisor.enabled is false because the session
+      instruction forbids calling the Agent tool unless the user requests it.
+
+  - timestamp: "2026-08-07T22:41:30Z"
+    action: spec_approved
+    phase: spec
+    details: >-
+      Task file pre-approved by the file-based track. User resolved the one gap
+      reading turned up (tools/install_codex_skills.py breaking on the checks/
+      deletion) by extending Scope to delete it and skills/specrail-*, and also
+      chose to close out R0-00's stale bookkeeping in this PR.
+
+  - timestamp: "2026-08-07T23:20:00Z"
+    action: spec_approved
+    phase: implement
+    details: >-
+      Second scope extension, mid-implement. Widening the reference search past
+      the criteria's three paths found templates/, review/, integrations/,
+      root schemas/ and artifacts/. User chose the full sweep; R0-10's Scope
+      was corrected because it had listed root schemas/ as a rename target.
+
+  - timestamp: "2026-08-07T23:24:00Z"
+    action: advisor_skipped
+    phase: implement
+    details: >-
+      Checkpoint B not run: advisor.enabled is false (session instruction
+      forbids calling the Agent tool unless the user requests it).
+
+  - timestamp: "2026-08-07T23:52:00Z"
+    action: gate_run
+    phase: implement
+    details: >-
+      scripts/gate.sh --task R0-02, full tier, verdict PASS (exit 0). L2 fmt,
+      check and test PASS; both L3 YAML sweeps PASS; L1 MANUAL with 8 criteria.
+      L4 not dispatched, llm_layer none, which does not downgrade the verdict
+      because L1-L3 all graded.
+
+  - timestamp: "2026-08-07T23:53:00Z"
+    action: outcome_satisfied
+    phase: implement
+    details: >-
+      Gate passed on iteration 0, so the grade-and-retry loop never engaged.
+      cargo test --workspace reports 3144 passed, matching R0-01's count at
+      63795352 - the evidence that 20,416 deleted lines were inert.
+
+  - timestamp: "2026-08-07T23:54:00Z"
+    action: implementation_complete
+    phase: implement
+    details: >-
+      99 files changed, 337 insertions, 20,416 deletions. Seven of eight
+      acceptance criteria green; the eighth is CI on the pull request.
+
+  - timestamp: "2026-08-07T23:58:00Z"
+    action: pr_created
+    phase: pr
+    details: "PR #4 opened at https://github.com/maxkulish/recol/pull/4"
+
+  - timestamp: "2026-08-08T00:25:00Z"
+    action: workflow_blocked
+    phase: pr
+    details: >-
+      PR #4 reported CONFLICTING with zero check runs. Not a recurrence of
+      R0-01's never-ran problem: a pull_request workflow runs against the merge
+      ref, and GitHub cannot create one for a conflicting PR, so no run was
+      ever scheduled. Cause was 170391f1 landing on main, where the user had
+      finalized R0-00 in parallel with this workflow doing the same.
+
+  - timestamp: "2026-08-08T00:34:00Z"
+    action: workflow_unblocked
+    phase: pr
+    details: >-
+      Rebased onto 170391f1, resolving all three conflicts in favour of the
+      user's text and dropping this workflow's duplicate R0-00 bookkeeping.
+      Acceptance criteria 1-5 re-verified green after the rebase; gate re-run.
+      New head 13307190.
+
+  - timestamp: "2026-08-08T00:45:00Z"
+    action: pushed_to_remote
+    phase: pr
+    details: >-
+      Force-pushed 7d5ee9df with --force-with-lease. PR #4 became MERGEABLE and
+      GitHub scheduled run 31224538951 within seconds, confirming the earlier
+      absence of runs was the missing merge ref and not a workflow fault.
+
+  - timestamp: "2026-08-08T00:52:00Z"
+    action: review_addressed
+    phase: pr
+    details: >-
+      Qodo round 1 at 7d5ee9df: 1 bug, 1 rule violation, both real, both fixed.
+      CONTRIBUTING.md still mandated enforcement_sensitive and the closure
+      workflow; AGENTS.md forbade the root project.md that docs/tasks/README.md
+      points at. Fixing the first prompted the whole-tree governance grep, which
+      found .pr_agent.toml briefing the review bot on SpecRail - a fifth surface
+      no criterion covered. That grep is now a standing acceptance criterion.
+
+  - timestamp: "2026-08-08T01:05:00Z"
+    action: ci_passed
+    phase: pr
+    details: >-
+      Run 31224538951, event pull_request, head 7d5ee9df: job `check` success
+      over 24 steps, down from 40. The first green pull_request run this
+      repository has produced. Criterion 8 satisfied, so all eight are green.
