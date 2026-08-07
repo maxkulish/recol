@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-08-03.
+Last updated: 2026-08-07 (orchestrator gate landed, PR #2).
 
 ## Done
 
@@ -19,6 +19,7 @@ Last updated: 2026-08-03.
 | R0-11's four deferred findings closed | `r0-12`, `tech.md`, `tasks.md`, `product.md`, `docs/tasks/README.md` - the parent contracts still mandated an export path that does not exist, inventoried before restoring, compared searches against the live source, and routed agents at a completed task |
 | `refactor/11` recovered after losing its ref | branch was absent from `git branch -a` with no worktree; all 16 commits survived as a dangling commit at `76af6a10` and the ref was restored. `.superpowers/sdd/r0-11-execution-plan/` is **not** on disk - the execution plan is committed at `docs/plan/20-rename-and-release/r0-11-execution-plan.md`, and the evidence for criteria 3 and 4 survives only in the session transcript at `~/.claude/projects/-Users-mk-Code-recol--refactor-11/` |
 | R0-01 preflight narrowed, merged | [PR #1](https://github.com/maxkulish/recol/pull/1) merged at `35129895`. All five acceptance criteria green: full preflight 15/15, `--fast` 9/9, `cargo test --workspace` 3144 passed. The three doomed checks are gone from the preflight and still invoked directly by `ci.yml`, so R0-02 can now delete them. Four Qodo findings were raised and fixed across three review rounds; the highest-severity one was a state file that did not parse as YAML while every local gate was green |
+| Orchestrator rebuilt around a real gate | [PR #2](https://github.com/maxkulish/recol/pull/2) merged at `fc29cfc3`, plan at `docs/plan/30-command-suite-adaptation.md`. R0-01 had finished `ungraded` because the only grader the commands accepted was `.lok/workflows/`, which this repo does not have. `scripts/gate.sh` now runs the deterministic layers and exits 0/1/2, where 2 means a layer could not run and is never a pass. Nine seeded defects prove it: four the gate must call FAIL, five environments it must call UNAVAILABLE. R0-NN task files are now first-class, so a task file is the spec and its acceptance criteria are gate layer L1. Qodo raised two Action Required findings, both real; the first was the gate contradicting its own rulebook, which is what added the UNAVAILABLE half of the validation |
 
 No CI, workflow, or GitHub setting has been changed. The first code change is
 R0-01, merged as PR #1.
@@ -59,6 +60,12 @@ alongside.
 R0-11 is done: `~/.remem` is backed up to an encrypted, restore-proven archive
 at `~/Backups/recol/2026-07-31/`. R0-12 (blocked by 10, 11) can proceed once
 R0-10 lands.
+
+Whichever task goes first, run it with `/task:orchestrate R0-NN`. Since PR #2 it
+treats the task file as the spec and grades against `scripts/gate.sh`, so the
+acceptance criteria in `docs/tasks/` are what the workflow checks rather than a
+list someone reads at the end. That path has not carried a real task yet, so
+expect to fix the contract as much as the task on the first run.
 
 ## R0 - Rename, CI refactor, distribution
 

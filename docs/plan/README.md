@@ -68,8 +68,8 @@ contribute those.
   distribution to GitHub Releases and a Homebrew tap. Sequenced first.
 - `30-command-suite-adaptation.md` - adapt `.claude/commands/` to the 2026-08
   migration guidance: rebuild the referee, make the R0 file-based track
-  first-class, rightsize the suite. Tooling, not product; single file until
-  work starts.
+  first-class, rightsize the suite. Tooling, not product. Implemented in PR #2;
+  the round's working rules live in `20-rename-and-release/conventions.md`.
 
 ## Source material
 
