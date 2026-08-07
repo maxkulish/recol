@@ -73,7 +73,9 @@ here. R0-01 lost time to this. Always pass `--repo maxkulish/recol`.
 
 ## Scope
 
-- [ ] Disable `auto-release`, `closure-audit`, `sensitive-governance`, `pages`
+- [x] Disable `auto-release`, `closure-audit`, `sensitive-governance`, `pages`
+      (2026-08-07, all four report `disabled_manually`; CI and Release remain
+      `active`)
 - [ ] Determine the actual cause of the suppression and record it
 - [ ] Enable workflow runs
 - [ ] Prove a run on a pull request and a run on a push to `main`
