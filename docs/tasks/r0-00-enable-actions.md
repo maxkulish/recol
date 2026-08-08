@@ -108,14 +108,22 @@ here. R0-01 lost time to this. Always pass `--repo maxkulish/recol`.
 
 ## Acceptance criteria
 
-- [ ] `gh workflow list --repo maxkulish/recol` shows `auto-release`,
+- [x] `gh workflow list --repo maxkulish/recol` shows `auto-release`,
       `closure-audit`, `sensitive-governance`, and `pages` as `disabled_manually`,
       and `CI` as `active`
-- [ ] `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 1 or more
-- [ ] `gh run list --repo maxkulish/recol --workflow ci.yml --event pull_request` returns at least one row
-- [ ] `gh run list --repo maxkulish/recol --workflow ci.yml --event push` returns at least one row
-- [ ] Every run above has a `conclusion` that is not null and not `cancelled` -
+- [x] `gh api repos/maxkulish/recol/actions/runs --jq .total_count` returns 1 or more
+      (returned 3)
+- [x] `gh run list --repo maxkulish/recol --workflow ci.yml --event pull_request` returns at least one row
+      (2 rows: 31213733517, 31213826716)
+- [x] `gh run list --repo maxkulish/recol --workflow ci.yml --event push` returns at least one row
+      (1 row: 31214281270)
+- [x] Every run above has a `conclusion` that is not null and not `cancelled` -
       `gh run list --repo maxkulish/recol --json conclusion --jq '.[].conclusion'`
-- [ ] `gh run list --repo maxkulish/recol --workflow auto-release.yml` returns no rows
-- [ ] The cause of the suppression is written into this file before it is closed,
+      (returned `success`, `failure`, `failure`)
+- [x] `gh run list --repo maxkulish/recol --workflow auto-release.yml` returns no rows
+      (no rows, even though CI completing on `main` - its trigger - had just fired)
+- [x] The cause of the suppression is written into this file before it is closed,
       replacing the hypothesis above
+      (merged with PR #3 at `69ecb0a0`, before the push-run proof concluded)
+
+All seven verified on 2026-08-07, immediately after run 31214281270 concluded.
