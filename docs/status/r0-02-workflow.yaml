@@ -13,8 +13,8 @@ task_type: specification
 created: "2026-08-07T22:40:00Z"
 
 workflow:
-  current_phase: pr
-  status: in_progress
+  current_phase: complete
+  status: complete
 
 phases:
   discovery:
@@ -154,12 +154,12 @@ phases:
         owner_task: null
 
   pr:
-    status: in_progress
+    status: complete
     pr_url: "https://github.com/maxkulish/recol/pull/4"
     pr_number: 4
     # Counts review ROUNDS, per .claude/templates/workflow-state.yaml:103.
     reviews_addressed: 2
-    approved: false
+    approved: true
     ci_passed: true
     # Round 2 re-review at 6536e398: Bugs (0). All three correctness findings
     # struck through. Two rule violations remain open by decision, not oversight.
@@ -306,9 +306,84 @@ phases:
       place.
 
   complete:
-    status: pending
-    board_updated: false
-    merged_at: null
+    status: complete
+    board_updated: true
+    merged_at: "2026-08-08T14:05:23Z"
+    merge_commit: "c23672f3"
+    merge_style: "merge commit; the single branch commit 973d7236 is preserved on main"
+    final_head: "973d7236"
+    # /project:sync warns that a merged PR is not a working feature. On a task
+    # that is almost entirely deletions, re-checking the tree is that check.
+    verified_on_main: >-
+      All 14 deleted paths absent when checked one at a time, policies/ and
+      prompts/ both present, and the whole-tree governance grep returns
+      nothing - re-run against main after the merge rather than inferred from
+      it.
+    aggregation_files:
+      updated:
+        - >-
+          project.md - R0-02 doing -> done; Done row added with the deletion
+          count and the scope-versus-criteria finding; **next** moved to R0-03;
+          ## Next rewritten around the critical path. Two paragraphs that R0-02
+          itself disproved were corrected: one predicted every pull request run
+          would stay red until R0-05, and one said /task:orchestrate had never
+          carried a real task.
+        - "docs/status/r0-02-workflow.yaml - this file"
+      not_updated:
+        - >-
+          The ASCII dependency graph. R0-02 changed no edge: 02 still gates 05,
+          and 05 still waits on 03 as well. /project:sync says to fix the graph
+          only when the shape of the work changed, and it did not.
+        - >-
+          Linear - this task has no Linear issue (linear_url: null). R0 work is
+          tracked in docs/tasks/ and project.md, and issues are disabled on the
+          repository (has_issues: false).
+        - >-
+          docs/plan/01-roadmap.md - carries no R0-NN task rows, so there is no
+          per-task status to change.
+    unblocked:
+      - >-
+        Nothing became startable from R0-02 alone. R0-05 lists 00, 02 and 03;
+        with 00 and 02 done, R0-03 is the only remaining gate on the critical
+        path, so **next** moved there. R0-03 was already unblocked - the marker
+        moved for priority, not for a dependency change.
+    lessons_file: "~/.claude/session-knowledge/recol--refactor-02--1c7999ac/notes.md"
+    lessons_learned:
+      - >-
+        A task's acceptance criteria cannot validate its own scope when both
+        were drawn from the same search. R0-02's scope and criteria both came
+        from surveying .github/ and scripts/, so all eight criteria passed green
+        over ten surfaces still referencing deleted machinery - one of which
+        imported a deleted Python package at module scope. What fixed it was a
+        criterion grepping the whole active tree, excluding docs/, specs/ and
+        CHANGELOG.md as the historical record.
+      - >-
+        `ls a b` exits 1 when any operand is missing, so a multi-operand ls
+        cannot prove every path is gone: "one still present" and "all absent"
+        return the same code. Two of this task's own criteria had that defect,
+        which is the same false assurance the task existed to delete. Per-path
+        loops that name the survivor replaced them.
+      - >-
+        The gate compiles, tests and parses YAML; it only prints the acceptance
+        criteria. Wording added during this task claimed otherwise and
+        reintroduced the confusion that left R0-01 ungraded. Worth restating
+        whenever the gate is described: a PASS is about L2 and L3 only.
+      - >-
+        A conflicting pull request produces zero check runs, because GitHub
+        cannot build the merge ref a pull_request workflow needs. On this
+        repository, where "no runs at all" was a real platform fault days
+        earlier, the two are indistinguishable by symptom. Check `mergeable`
+        before investigating the workflow.
+      - >-
+        The user finalized R0-00 on main while this workflow was doing the same
+        bookkeeping, colliding on three files. Their text won verbatim and this
+        workflow's was dropped; theirs also carried two facts this one had
+        missed. When the collision is with the user's own prose, the merge is
+        not a negotiation between two drafts.
+      - >-
+        Round-tripping this file through yaml.safe_dump to append history
+        stripped all 22 comments and reformatted 900 lines. The state file is an
+        audit trail whose comments carry reasoning, so it is edited as text.
 
 # Blocker verification. The board disagreed with disk and disk won, per
 # orchestrate.md Step 3.5.
@@ -560,3 +635,38 @@ history:
       Run 31224538951, event pull_request, head 7d5ee9df: job `check` success
       over 24 steps, down from 40. The first green pull_request run this
       repository has produced. Criterion 8 satisfied, so all eight are green.
+
+  - timestamp: "2026-08-08T01:40:00Z"
+    action: review_addressed
+    phase: pr
+    details: >-
+      Qodo round 2 at 3c406bc5: three findings, all real, all fixed at
+      6536e398. Two were in work this task added rather than inherited - the
+      multi-operand `ls` criteria and the sentence claiming the gate checks
+      acceptance criteria. Re-review reported Bugs (0).
+
+  - timestamp: "2026-08-08T14:05:23Z"
+    action: pr_merged
+    phase: pr
+    details: >-
+      PR #4 merged by the user as merge commit c23672f3, final head 973d7236.
+      CI green on all three heads (7d5ee9df, 3c406bc5, 6536e398).
+
+  - timestamp: "2026-08-08T14:30:00Z"
+    action: project_sync_complete
+    phase: complete
+    details: >-
+      project.md synced: R0-02 doing -> done, Done row added, **next** moved to
+      R0-03, ## Next rewritten around the critical path, and two paragraphs
+      corrected that R0-02 itself disproved. Dependency graph unchanged, since
+      no edge moved. No Linear sync: linear_url is null and issues are disabled
+      on the repository.
+
+  - timestamp: "2026-08-08T14:32:00Z"
+    action: workflow_complete
+    phase: complete
+    details: >-
+      R0-02 complete. All eight acceptance criteria green and re-verified
+      against main after the merge rather than inferred from it. Two Qodo
+      rounds addressed, bugs 0; two rule violations left open by recorded
+      decision, one owned by R0-05.
