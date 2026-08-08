@@ -132,7 +132,18 @@ phases:
     status: complete
     current_step: 7
     total_steps: 7
-    commits: []
+    # One commit, amended through five heads as rebase and two review rounds
+    # landed: 78dff597 -> 13307190 -> 7d5ee9df -> 3c406bc5 -> 6536e398 ->
+    # 973d7236. Only the last exists on main; the rest are recorded because the
+    # review rounds and CI runs reference them.
+    commits:
+      - "973d7236"
+    superseded_heads:
+      - "78dff597"   # first push; PR #4 opened here, then found CONFLICTING
+      - "13307190"   # after rebase onto 170391f1, not pushed
+      - "7d5ee9df"   # force-pushed; first green CI, Qodo round 1 reviewed this
+      - "3c406bc5"   # round 1 fixes; Qodo round 2 reviewed this
+      - "6536e398"   # round 2 fixes; Qodo re-review reported Bugs (0)
     last_phase_completed: "gate PASS, seven of eight acceptance criteria green"
     gate_run: true
     validation_reports: []
