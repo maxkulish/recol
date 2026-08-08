@@ -4,7 +4,7 @@ What is done, what blocks what, what to do next. Detail lives elsewhere and is
 referenced, never copied: specs in `docs/plan/`, executable tasks in
 `docs/tasks/`.
 
-Last updated: 2026-08-07 (R0-00 done, Actions running, PR #3).
+Last updated: 2026-08-08 (R0-02 in flight, PR #4).
 
 ## Done
 
@@ -37,10 +37,24 @@ which is easy to mistake for recol activity; always pass
 
 ## Next
 
-**Start with R0-02.** Its blockers, 00 and 01, are both done, and it deletes
-the governance machinery that turns every pull request red - including the
-"Resolve linked issue" step PR #3 died on. It is also the first real task for
-the `/task:orchestrate` path (below), which has shipped but never carried one.
+**R0-02 is in flight** as [PR #4](https://github.com/maxkulish/recol/pull/4),
+the first task carried by `/task:orchestrate` end to end. Gate verdict PASS,
+`cargo test --workspace` 3144 passed - the same count R0-01 recorded before any
+of it was deleted, which is what proves 20,416 removed lines were inert. Its
+own pull request run is the test of the prediction above: it deletes the
+"Resolve linked issue" step every red run died on.
+
+Its diff grew to roughly three times the Scope checklist. The written scope and
+the acceptance criteria were both drawn from the same survey of `.github/` and
+`scripts/`, so the criteria inherited the survey's blind spot and would have
+passed green over a broken import. Searching outside those paths found
+`tools/`, `skills/`, `AGENT_USAGE.md`, `templates/`, `review/`,
+`integrations/`, root `schemas/` and `artifacts/`. Treat the R0 spec's
+per-phase file lists as a starting survey, not a complete one.
+
+**R0-04 still needs care.** It pins branch protection to a required status
+check by name. Do not apply it until a run has reported under the name it
+pins, or `main` becomes permanently unmergeable.
 
 **R0-03 and R0-08 remain unblocked** and depend on none of this, so they can run
 alongside.
@@ -63,7 +77,7 @@ Spec: `docs/plan/20-rename-and-release/` | Tasks: `docs/tasks/`
 |---|---|---|---|
 | [00 Enable GitHub Actions](docs/tasks/r0-00-enable-actions.md) | HITL | - | done |
 | [01 Narrow the PR preflight](docs/tasks/r0-01-narrow-pr-preflight.md) | AFK | - | done |
-| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | **next** |
+| [02 Delete governance machinery](docs/tasks/r0-02-delete-governance.md) | AFK | 00, 01 | **doing** |
 | [03 Delete npm/ and server.json](docs/tasks/r0-03-delete-npm-and-server-json.md) | AFK | - | todo |
 | [04 Repository protection](docs/tasks/r0-04-repository-protection.md) | HITL | 00, 05 | todo |
 | [05 Rebuild ci.yml, Rust first](docs/tasks/r0-05-rebuild-ci-rust-first.md) | AFK | 00, 02, 03 | todo |

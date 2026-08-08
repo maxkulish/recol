@@ -66,8 +66,10 @@ Check that a change to behavior already governed by a contract under
 for the contract's status first: a spec marked implemented, superseded, or
 absorbed is not pending work and must not be cited as an unmet requirement.
 
-For SpecRail-routed work, packets live under `specs/GH<issue-number>/`. Do not
-require a SpecRail packet for a small bugfix with a clear root cause.
+For work tracked in `docs/tasks/`, the task file is the spec and its acceptance
+criteria are what the change is graded against. Check the change against those
+criteria rather than asking for a separate spec document. `specs/GH<number>/`
+is an inherited historical archive, not a destination for new work.
 """
 
 [review_agent_ux]
